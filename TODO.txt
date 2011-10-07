@@ -1,0 +1,19 @@
+
+-----Week 1-------
+[X] Set up Subversion repository
+[ ] Install development environments for team members
+Collector Phase 1
+[X] Find a simple DLL for testing (shell32.dll)
+[X] Find a tool that spits out exported functions, addresses for DLL
+[ ] Execute above tool on a named file from a test Python script
+[ ] Find another, standalone DLL so we can write a simple client
+    program for it in C and link against it for further testing
+[ ] Successfully hook/set brkpts in our custom C program from Python
+[ ] Successfully hook/set brkpts in the DLL from Python
+[ ] Write a script that finds all exported functions for a DLL by 
+    calling the tool we found and parsing the result file
+[ ] Have the above script set breakpoints for all of the functions
+[ ] Have above script then set client program running and write to
+    a log every time a breakpoint is reached
+Parser Phase 1
+[ ] Come up with a method for parsing functions from DLL C header
