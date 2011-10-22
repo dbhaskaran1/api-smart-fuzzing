@@ -1,5 +1,7 @@
 __all__ = \
 [
+    "fuzzer",
+    "parser",
     "pydbg",
     "utils",
 ]
