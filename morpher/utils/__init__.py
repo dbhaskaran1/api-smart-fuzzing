@@ -4,7 +4,6 @@
 
 __all__ = \
 [
-    "code_coverage",
     "crash_binning",
     "hooking",
     "injection",

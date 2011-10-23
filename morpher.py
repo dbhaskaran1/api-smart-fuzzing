@@ -5,11 +5,11 @@ Created on Oct 21, 2011
 '''
 
 import sys
-import api_fuzzer.parser.funcs as funcs
-import api_fuzzer.fuzzer.fuzzer as fuzzer
-import api_fuzzer.parser.parser as parser
-import api_fuzzer.misc.config as config
-import api_fuzzer.misc.logger as logger
+import morpher.parser.funcs as funcs
+import morpher.fuzzer.fuzzer as fuzzer
+import morpher.parser.parser as parser
+import morpher.misc.config as config
+import morpher.misc.logger as logger
     
 if __name__ == '__main__':
     

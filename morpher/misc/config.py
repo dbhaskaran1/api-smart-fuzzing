@@ -51,7 +51,7 @@ def create():
         print use
         sys.exit()
     
-     = args[0]
+    dll = args[0]
     
     #now we get setting from config file
     defaults = {
@@ -66,8 +66,6 @@ def create():
     crashdir = cfgreader.get('output', 'crashdir')
     debugmode = cfgreader.get('output', 'debug') or debugmode
     
-    cfg 
-    cfg[]
     
     if debugmode:
         print "Debug mode ON"
