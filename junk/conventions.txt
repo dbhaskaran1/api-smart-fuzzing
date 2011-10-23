@@ -1,0 +1,49 @@
+Packages:
+
+All python code should be in appropriate subpackage of 'morpher',
+except the main script morpher.py
+
+Naming:
+
+Variables, functions and modules should use underscores to separate words and
+be all lower case. Classes should have the first letter capitalized.
+
+Comments:
+Single line: # This is a comment
+Multiple lines: # This is a comment that 
+                # spans multiple lines
+Note the space between the # and the first letter (which is capitalized)
+
+Documentation:
+
+def myfunc(mystr):
+    '''
+    Takes a path string and outputs it without whitespace
+    '''
+    
+Debugging:
+
+import logging
+log = logging.getLogger(__name__)
+
+log.error("Can't open file %s", file)
+log.debug("Opened file %s", file)
+# Can only use in except blocks, adds exception info
+log.exception("Caught an exception")
+# Returns (filename, linenum, funcname) of caller
+log.findCaller()
+
+Levels are debug, info, warning, error, critical
+
+Do NOT do this: log.critical("Can't open file %s" % file)
+We want the log module to do the formatting (better performance when disabled)
+
+Configuration options:
+
+Whenever possible, store data related to state in the global object.
+Two-part hierarchy mirrored by config.ini - (section, property)
+
+import config
+outputdir = config.cfg.get('output', 'outdir')
+config.cfg.set('parser','modelfile', "myfile.xml")
+

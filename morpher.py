@@ -3,11 +3,12 @@ Created on Oct 21, 2011
 
 @author: Rob
 '''
-
+'''
 import sys
 import morpher.parser.funcs as funcs
 import morpher.fuzzer.fuzzer as fuzzer
 import morpher.parser.parser as parser
+'''
 import morpher.misc.config as config
 import morpher.misc.logger as logger
     
@@ -15,6 +16,7 @@ if __name__ == '__main__':
     
     c = config.create()
     logger.setup()
+    config.log()
     '''
     fuzz = fuzzer.fuzzer(dll)
     fuzz.start()

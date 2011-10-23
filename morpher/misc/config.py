@@ -7,16 +7,10 @@ import os
 import sys
 import optparse
 import ConfigParser
- 
-# Map of global settings
+import logger
+import logging
+# Map of global settings (ConfigParser object)
 cfg = None
-
-def assign(c):
-    '''
-    Assigns the given config map to cfg
-    '''
-    global cfg
-    cfg = c
         
 def create():
     '''
@@ -26,11 +20,13 @@ def create():
     global cfg
     cfg = None
     
-    # Set up the new config object
+    # Parse the command line options
     desc = '''
-    Welcome to API Fuzzer (we need a new name). You need some help, so here it is:
+    Morpher is a Python-based tool for fuzzing 32-bit DLLs on Windows. 
+    View the included README for documentation and example usage. 
     '''
     use = 'run.py [options] dll1 dll2 ..'
+    
     p = optparse.OptionParser(description=desc, usage=use)
     
     # Option taking an arg
@@ -43,36 +39,77 @@ def create():
     p.set_defaults(debug=False, configfile="config.ini")
     # Returns options list and list of unmatched arguments
     opts, args = p.parse_args()
-    # Retrieve options
-    configfile = opts.configfile
-    debugmode = opts.debug
     
-    if len(args) <= 0 :
-        print use
+    if len(args) != 1 :
+        if len(args) > 1 :
+            print("Multiple target DLLs specified:",)
+            for dll in args : print(dll)
+        else :
+            print("Missing a target DLL")
+        print(use)
         sys.exit()
     
     dll = args[0]
     
-    #now we get setting from config file
-    defaults = {
-        'datadir' : "data",
-        'crashdir' : "crashers"
+    # Now get settings from config file
+    # defined variables that can be used by config.ini
+    defined = {
+        'basedir' : os.getcwd(),
     }
     
-    cfgreader = ConfigParser.ConfigParser(defaults)
-    cfgreader.read(configfile)
+    cfg = ConfigParser.ConfigParser(defined)
+    cfg.read(opts.configfile)
     
-    datadir = cfgreader.get('input', 'datadir')
-    crashdir = cfgreader.get('output', 'crashdir')
-    debugmode = cfgreader.get('output', 'debug') or debugmode
+    # Add some more information
     
-    
-    if debugmode:
-        print "Debug mode ON"
-        print "Data directory: %s" % datadir
-        print "Crash file directory: %s" % crashdir
-        print "DLL: %s" % dll
-        print "Path: %s" % (os.getcwd() + '\\' + dll)
+    # Is debug mode on?
+    debug = cfg.get('output', 'debug') or opts.debug
+    cfg.set('output', 'debug', debug)
+    if debug :
+        cfg.set('logging', 'loglevel', "debug")
+    # The target DLL to be fuzzed
+    cfg.set('fuzzer', 'target', dll)
+    # Where to save our state as an INI file
+    statefile = os.path.join(cfg.get('directories', 'datadir'), "state.ini")
+    cfg.set('output', 'statefile', statefile)
         
     return cfg
     
+def log() :
+    '''
+    Report contents of cfg
+    '''
+    global cfg
+    level = logger.level()
+    if level <= logging.INFO :
+        cfgstr = "\n\n\tConfiguration settings: \n"
+        for sec in cfg.sections() :
+            cfgstr += "\t[%s]\n" % sec
+            for (opt, val) in cfg.items(sec) :
+                cfgstr += "\t  %s : %s\n" % (opt, val)
+        cfgstr += "\n"
+        log = logging.getLogger(__name__)
+        log.info(cfgstr)
+
+def save():
+    '''
+    Save our state to a config file (.ini)
+    '''
+    filename = cfg.get('output', 'statefile')
+    f = open(filename)
+    cfg.write(f)
+    
+def load(filename):
+    '''
+    If we need to restore our state from saved config file
+    '''
+    global cfg
+    cfg = ConfigParser.ConfigParser()
+    cfg.read(filename)
+
+def assign(c):
+    '''
+    Assigns the given ConfigParser object to cfg
+    '''
+    global cfg
+    cfg = c
