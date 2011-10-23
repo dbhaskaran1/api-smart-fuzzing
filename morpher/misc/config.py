@@ -15,7 +15,9 @@ cfg = None
 def create():
     '''
     Parses command line and config.ini to creates and 
-    initialize a new configuration object
+    initialize a new configuration object. Does not use
+    logging since the logging system setup is dependent
+    on information supplied here
     '''
     global cfg
     cfg = None
@@ -25,7 +27,7 @@ def create():
     Morpher is a Python-based tool for fuzzing 32-bit DLLs on Windows. 
     View the included README for documentation and example usage. 
     '''
-    use = 'run.py [options] dll1 dll2 ..'
+    use = 'morpher.py [options] [dll]'
     
     p = optparse.OptionParser(description=desc, usage=use)
     
@@ -40,16 +42,17 @@ def create():
     # Returns options list and list of unmatched arguments
     opts, args = p.parse_args()
     
-    if len(args) != 1 :
-        if len(args) > 1 :
-            print("Multiple target DLLs specified:",)
-            for dll in args : print(dll)
-        else :
-            print("Missing a target DLL")
-        print(use)
+    # Was a target DLL supplied on command line?
+    if len(args) > 1 :
+        print "Multiple target DLLs specified:",
+        for dll in args : print(dll)
+        print "Usage: " + use
         sys.exit()
     
-    dll = args[0]
+    if len(args) == 1 :
+        dll = args[0]
+    else :
+        dll = None
     
     # Now get settings from config file
     # defined variables that can be used by config.ini
@@ -68,7 +71,14 @@ def create():
     if debug :
         cfg.set('logging', 'loglevel', "debug")
     # The target DLL to be fuzzed
-    cfg.set('fuzzer', 'target', dll)
+    if dll != None :
+        # If DLL given on command line, overrides config file
+        cfg.set('fuzzer', 'target', dll)
+    elif not cfg.has_option('fuzzer', 'target') :
+        # If no DLL supplied, raise error
+        print "No target DLL specified in config or command line"
+        sys.exit()
+        
     # Where to save our state as an INI file
     statefile = os.path.join(cfg.get('directories', 'datadir'), "state.ini")
     cfg.set('output', 'statefile', statefile)

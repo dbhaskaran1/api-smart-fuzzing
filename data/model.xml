@@ -1,18 +1,4 @@
 <dll>
-    <function>
-        <address>
-            10243
-        </address>
-        <name>
-            add
-        </name>
-    </function>
-    <function>
-        <address>
-            9999
-        </address>
-        <name>
-            sub
-        </name>
-    </function>
+    <function address="0x0000128c" name="add_num" ordinal="1 (0x1)"/>
+    <function address="0x00001299" name="sub_num" ordinal="2 (0x2)"/>
 </dll>

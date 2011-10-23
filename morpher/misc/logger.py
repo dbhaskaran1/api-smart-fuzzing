@@ -29,10 +29,10 @@ def setup():
     # setup message format
     fmt = logging.Formatter("%(levelname)-10s %(asctime)s %(message)s")
     
-    # Create a handler to print CRITICAL messages to stderr
-    crit_hand = logging.StreamHandler(sys.stderr)
-    crit_hand.setLevel(logging.CRITICAL)
-    crit_hand.setFormatter(fmt)
+    # Create a handler to print ERROR or higher messages to stderr
+    err_hand = logging.StreamHandler(sys.stderr)
+    err_hand.setLevel(logging.ERROR)
+    err_hand.setFormatter(fmt)
     
     # Create handler that prints to a file
     logdir = config.cfg.get('directories','logdir')
@@ -55,7 +55,7 @@ def setup():
     main_log = logging.getLogger("morpher")
     main_log.setLevel(level)
     main_log.addHandler(main_hand)
-    main_log.addHandler(crit_hand)
+    main_log.addHandler(err_hand)
     
     # Cut off fuzzing process's logger from tree and
     # assign it to a seperate log file
@@ -63,7 +63,7 @@ def setup():
     fuzz_log.propagate = False
     fuzz_log.setLevel(level)
     fuzz_log.addHandler(fuzz_hand)
-    fuzz_log.addHandler(crit_hand)
+    fuzz_log.addHandler(err_hand)
     
     # Ensure that logs are flushed on exit
     atexit.register(logging.shutdown)

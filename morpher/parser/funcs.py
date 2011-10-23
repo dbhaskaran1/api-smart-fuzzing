@@ -3,21 +3,51 @@ Created on Oct 22, 2011
 
 @author: Rob
 '''
+import morpher.misc.config as config
 import subprocess
 import csv
+import os
+import sys
+import logging
 
-def get_funcs(dllpath):
-    base = 'C:\\Users\\Rob\\workspace\\ApiFuzzing\\'
-    #os.getcwd()
-    outname = 'functions.csv'
-    toolname = 'dllexp.exe'
-    output = base + 'data\\' + outname
-    tool = base + 'tools\\' + toolname
-    args = [tool, '/from_files', dllpath, '/scomma', output]
+def get_funcs():
+    '''
+    Runs the dllexp.exe tool to pull the export table from the target DLL.
+    Returns a list of (funcname, ordinal, rel_addr) tuples
+    '''
+    log = logging.getLogger(__name__)
+    # Retrieve configuration info
+    dllpath = config.cfg.get('fuzzer', 'target')
+    data = config.cfg.get('directories', 'datadir')
+    tools = config.cfg.get('directories', 'tooldir')
+    
+    outpath = os.path.join(data, 'functions.csv')
+    toolpath = os.path.join(tools, 'dllexp.exe')
+    
+    # Call the dllexp.exe tool on the target DLL
+    args = [toolpath, '/from_files', dllpath, '/scomma', outpath]
+    log.info("Extracting export table with \"dllexp.exe\"")
+    log.debug("Command Line: %s /from_files %s /scomma %s", toolpath, dllpath, outpath)
     ret = subprocess.call(args)
-    f = open(output)
-    result = csv.DictReader(f, ['name','addr_abs', 'addr_rel', 'ordinal', 'dll', 'path', 'type'])
-    print "Discovered exported functions of %s" % dllpath
-    for r in result :
-        print "%(name)s" % r
-    return ret
+    if ret != 0 :
+        log.error("DLL export tool failure. Returned code %d", ret)
+        sys.exit()
+        
+    # Open the CSV output
+    try :
+        f = open(outpath)
+    except :
+        log.exception("Can't open the exported CSV file")
+        sys.exit()  
+    
+    # Parse the CSV file
+    log.info("Parsing the CSV file written by dllexp.exe")
+    filefmt = ['name','addr_abs', 'addr_rel', 'ordinal', 'dll', 'path', 'type']
+    result = csv.DictReader(f, filefmt) 
+    l = [(r['name'], r['ordinal'], r['addr_rel']) for r in result]
+    
+    log.info("Found %d exported function entries", len(l))
+    log.debug("Extracted entries: %s", str(l))
+        
+    return l
+    
