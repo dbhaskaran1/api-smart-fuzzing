@@ -1,0 +1,2 @@
+add_num,0x61f8128c,0x0000128c,1 (0x1),libTestDLL.dll,C:\Users\Rob\workspace\ApiFuzzing\sample\\libTestDLL.dll,Exported Function
+sub_num,0x61f81299,0x00001299,2 (0x2),libTestDLL.dll,C:\Users\Rob\workspace\ApiFuzzing\sample\\libTestDLL.dll,Exported Function

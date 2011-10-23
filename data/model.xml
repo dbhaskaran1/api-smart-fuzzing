@@ -1,0 +1,18 @@
+<dll>
+    <function>
+        <address>
+            10243
+        </address>
+        <name>
+            add
+        </name>
+    </function>
+    <function>
+        <address>
+            9999
+        </address>
+        <name>
+            sub
+        </name>
+    </function>
+</dll>
