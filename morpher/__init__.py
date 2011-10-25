@@ -1,5 +1,6 @@
 __all__ = \
 [
+    "morpher",
     "collector",
     "fuzzer",
     "misc",
