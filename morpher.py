@@ -9,6 +9,7 @@ import morpher.parser.funcs as funcs
 import morpher.fuzzer.fuzzer as fuzzer
 '''
 import morpher.parser.parser as parser
+import morpher.collector.collector as collector
 import morpher.misc.config as config
 import morpher.misc.logger as logger
 import logging
@@ -22,12 +23,11 @@ if __name__ == '__main__':
     
     # Run the parser
     parser.parse()
+    # Run the collector
+    collector.collect()
 
     '''
     fuzz = fuzzer.fuzzer(dll)
     fuzz.start()
     pid = fuzz.pid
-    funcs.get_funcs(os.getcwd() + '\\' + dll)
-    p = parser.parser()
-    p.parse()
     '''

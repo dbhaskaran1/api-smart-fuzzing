@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import morpher.misc.config as config
+import morpher.misc.logger as logger
 
 def parse():
     '''
@@ -18,8 +19,7 @@ def parse():
     log = logging.getLogger(__name__)
     
     # Get relevant configuration information
-    datadir = config.cfg.get('directories', 'datadir')
-    modelfile = os.path.join(datadir, 'model.xml')
+    modelfile = config.cfg.get('output', 'modelfile')
     
     # Check if parsing is enabled
     if not config.cfg.get('parser', 'parsing') : 
@@ -51,13 +51,20 @@ def parse():
     for (fname, ordinal, addr) in exportlist :
         func = doc.createElement("function")
         func.setAttribute("name", fname)
-        func.setAttribute("ordinal", ordinal)
-        func.setAttribute("address", addr)
+        func.setAttribute("ordinal", str(ordinal))
+        func.setAttribute("address", str(addr))
         top.appendChild(func)
         
     # Write out the model file
-    log.info("Writing XML tree to model.xml")
-    f = open(modelfile, mode="w")
+    log.info("Writing XML tree to model file")
+    if logger.level() == logging.DEBUG :
+        xmlstr = top.toprettyxml(indent="    ", newl="\n")
+        log.debug("\n\nXML Tree:\n%s\n", xmlstr)
+    try :
+        f = open(modelfile, mode="w")
+    except :
+        log.exception("Couldn't open %s", modelfile)
+        sys.exit()
     top.writexml(f, addindent="    ", newl="\n")
-        
+    f.close()
         

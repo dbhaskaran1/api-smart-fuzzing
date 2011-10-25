@@ -3,8 +3,8 @@ Created on Oct 18, 2011
 
 @author: Rob
 '''
-import api_fuzzer.pydbg.pydbg as pydbg
-import api_fuzzer.pydbg.defines as defines
+import morpher.pydbg.pydbg as pydbg
+import morpher.pydbg.defines as defines
 import struct
     
 def sprintf_handler(dbg):
