@@ -11,7 +11,11 @@ import atexit
 import null
 
 class Config(ConfigParser.ConfigParser):
+    '''
+    Class documentation
+    '''
     
+    # The logging object used for reporting
     log = None
     
     def __init__(self, **params):

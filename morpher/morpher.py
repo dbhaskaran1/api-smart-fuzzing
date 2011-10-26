@@ -4,17 +4,20 @@ Created on Oct 21, 2011
 @author: Rob
 '''
 
-import parser.parser as parser
+from parser import parser
 # import collector.collector as collector
-import misc.config as config
+from misc import config
 
 
-class Morpher:
+class Morpher(object):
     '''
     The top-level object for the Morpher tool
     '''
     
+    # The Config object used for configuration info
     cfg = None
+    
+    # The logging object used for reporting
     log = None
     
     def __init__(self, **params):

@@ -5,6 +5,9 @@ Created on Oct 22, 2011
 '''
 
 class Null(object):
+    '''
+    Class documentation
+    '''
     def __init__(self, *args, **kwargs): pass
     def __call__(self, *args, **kwargs): return self
     def __getattribute__(self, name): return self

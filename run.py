@@ -3,7 +3,7 @@ Created on Oct 25, 2011
 
 @author: Rob
 '''
-import morpher.morpher as morpher
+from morpher import morpher
 import optparse
 import sys
 import traceback

@@ -4,19 +4,31 @@ Created on Oct 21, 2011
 @author: Rob
 '''
 import xml.dom.minidom as xml
-import subprocess
 import logging
 import os
-import csv
+import dllexp
 
-class Parser:
+class Parser(object):
+    '''
+    Parser documentation
+    '''
     
+    # The Config object used for configuration info
     cfg = None
+    
+    # The logging object used for reporting
     log = None
     
+    # The dllexp.exe wrapper object for getting export data
+    dllexp = None
+    
     def __init__ (self, cfg):
+        '''
+        init documentation
+        '''
         self.cfg = cfg
         self.log = cfg.getLogger(__name__)
+        self.dllexp = dllexp.DllExp(cfg)
         
     def parse(self):
         '''
@@ -42,7 +54,7 @@ class Parser:
         self.log.info("Beginning parse routine")
         
         # Retrieve the export table from the DLL
-        exportlist = self.getFunctions()
+        exportlist = self.dllexp.getFunctions()
     
         # INSERT ADDITIONAL PARSING LOGIC HERE
         # Right now all this does is read the export 
@@ -76,46 +88,4 @@ class Parser:
         top.writexml(f, addindent="    ", newl="\n")
         f.close()
 
-    def getFunctions(self):
-        '''
-        Runs the dllexp.exe tool to pull the export table from the target DLL.
-        Returns a list of (funcname, ordinal, rel_addr) tuples - (string, int, int)
-        '''
-        # Retrieve configuration info
-        dllpath = self.cfg.get('fuzzer', 'target')
-        data = self.cfg.get('directories', 'datadir')
-        tools = self.cfg.get('directories', 'tooldir')
-        
-        outpath = os.path.join(data, 'functions.csv')
-        toolpath = os.path.join(tools, 'dllexp.exe')
-        
-        # Call the dllexp.exe tool on the target DLL
-        args = [toolpath, '/from_files', dllpath, '/scomma', outpath]
-        self.log.info("Extracting export table with \"dllexp.exe\"")
-        self.log.debug("Command Line: %s /from_files %s /scomma %s", toolpath, dllpath, outpath)
-        ret = subprocess.call(args)
-        if ret != 0 :
-            msg = "DLL export tool failure. Returned code %d"
-            self.log.error(msg, ret)
-            raise Exception(msg % ret)
-            
-        # Open the CSV output
-        try :
-            f = open(outpath)
-        except :
-            msg = "Can't open the exported CSV file"
-            self.log.exception(msg)
-            raise Exception(msg)
-        
-        # Parse the CSV file
-        self.log.info("Parsing the CSV file written by dllexp.exe")
-        filefmt = ['name','addr_abs', 'addr_rel', 'ordinal', 'dll', 'path', 'type']
-        result = csv.DictReader(f, filefmt) 
-        # Ordinal is printed as '1 (0x1)', so just take first part
-        l = [(r['name'], int(r['ordinal'].split()[0]), int(r['addr_rel'], 16)) for r in result]
-        f.close()
-        
-        self.log.info("Found %d exported function entries", len(l))
-        self.log.debug("Extracted entries: %s", str(l))
-            
-        return l
+    
