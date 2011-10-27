@@ -15,9 +15,6 @@ class Config(ConfigParser.ConfigParser):
     Class documentation
     '''
     
-    # The logging object used for reporting
-    log = None
-    
     def __init__(self, **params):
         '''
         Parses config.ini and given params to create and 
@@ -33,6 +30,9 @@ class Config(ConfigParser.ConfigParser):
         # Set special default values for INI entries
         self.set("DEFAULT", "basedir", os.getcwd())
         
+        # Create the 'temp' section for volatile data
+        self.add_section('TEMP')
+        
         # Read the config file
         cfgfile = params.pop("configfile", "config.ini")
         self.read(cfgfile)
@@ -43,7 +43,7 @@ class Config(ConfigParser.ConfigParser):
         debug = self.getboolean('output', 'debug') or \
                 params.get("debug", False) or \
                 self.get('logging', 'loglevel') == "debug"
-        self.set('output', 'debug', debug)
+        self.set('output', 'debug', "on" if debug else "off")
         if debug :
             self.set('logging', 'loglevel', "debug")
             
@@ -75,8 +75,10 @@ class Config(ConfigParser.ConfigParser):
         '''
         Initializes the logging system and resets existing logs
         '''
+        # The logging object used for reporting
+        self.log = None
         # Are we even using logging?
-        if not self.getboolean('logging', 'logging') :
+        if not self.getboolean('logging', 'log') :
             self.log = null.Null()
             return
         
@@ -108,14 +110,16 @@ class Config(ConfigParser.ConfigParser):
         flush = self.get('logging','flushlevel')
         
         path = os.path.join(logdir, 'main.log')
-        os.remove(path)
+        if os.path.isfile(path) :
+            os.remove(path)
         main_f_hand = logging.FileHandler(path)
         main_f_hand.setFormatter(fmt)
         main_hand = logging.handlers.MemoryHandler(bufsize, flush, main_f_hand)
         
         # Fuzzer needs to log to a different file since its running concurrently
-        path = os.path.join(logdir, 'fuzz.log')
-        os.remove(path)
+        path = os.path.join(logdir, 'harness.log')
+        if os.path.isfile(path) :
+            os.remove(path)
         fuzz_f_hand = logging.FileHandler(path)
         fuzz_f_hand.setFormatter(fmt)
         fuzz_hand = logging.handlers.MemoryHandler(bufsize, flush, fuzz_f_hand)
@@ -128,7 +132,7 @@ class Config(ConfigParser.ConfigParser):
         
         # Cut off fuzzing process's logger from tree and
         # assign it to a seperate log file
-        fuzz_log = logging.getLogger("morpher.fuzzer.fuzzer")
+        fuzz_log = logging.getLogger("morpher.fuzzer.harness")
         fuzz_log.propagate = False
         fuzz_log.setLevel(level)
         fuzz_log.addHandler(fuzz_hand)
@@ -169,20 +173,30 @@ class Config(ConfigParser.ConfigParser):
         Return a fake Null logger if logging not enabled
         Otherwise give a real logger
         '''
-        if not self.getboolean('logging', 'logging'):
+        if not self.getboolean('logging', 'log'):
             return null.Null()
         else :
             return logging.getLogger(name)
     
     def save(self):
         '''
-        Save our state to a config file (.ini)
+        Save our state to a config file (.ini). Does not store
+        any info in the 'temp' section
         '''
+        # Remove temps from config
+        tlist = self.items('TEMP')
+        self.remove_section('TEMP')
+        # Save the config
         filename = self.get('output', 'statefile')
         self.log.info("Saving state to %s", filename)
         f = open(filename)
         self.write(f)
         f.close()
+        # Restore temps
+        self.add_section('TEMP')
+        for (op, val) in tlist :
+            self.set('TEMP', op, val)
+        
         
     def load(self, filename):
         '''

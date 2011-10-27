@@ -5,5 +5,6 @@ Package documentation
 __all__ = \
 [
     "collector",
-    "range_union"
+    "range_union",
+    "snapshot_manager"
 ]

@@ -6,4 +6,7 @@ __all__ = \
 [
     "config",
     "null",
+    "block",
+    "memory",
+    "typeconvert"
 ]

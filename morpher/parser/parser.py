@@ -12,22 +12,16 @@ class Parser(object):
     '''
     Parser documentation
     '''
-    
-    # The Config object used for configuration info
-    cfg = None
-    
-    # The logging object used for reporting
-    log = None
-    
-    # The dllexp.exe wrapper object for getting export data
-    dllexp = None
-    
+
     def __init__ (self, cfg):
         '''
         init documentation
         '''
+        # The Config object used for configuration info
         self.cfg = cfg
+        # The logging object used for reporting
         self.log = cfg.getLogger(__name__)
+        # The dllexp.exe wrapper object for getting export data
         self.dllexp = dllexp.DllExp(cfg)
         
     def parse(self):

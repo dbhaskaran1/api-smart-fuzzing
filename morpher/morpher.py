@@ -13,13 +13,7 @@ class Morpher(object):
     '''
     The top-level object for the Morpher tool
     '''
-    
-    # The Config object used for configuration info
-    cfg = None
-    
-    # The logging object used for reporting
-    log = None
-    
+
     def __init__(self, **params):
         '''
         Sets up a Config object for this morpher and initializes
@@ -28,9 +22,11 @@ class Morpher(object):
         @type  params:      Variable
         @param params:      Name-value pairs
         '''
+        # The config object used for configuration info
         self.cfg = config.Config(**params)
         self.cfg.setupLogging()
         self.cfg.logConfig()
+        # The logging object used for reporting
         self.log = self.cfg.getLogger(__name__)
 
     
