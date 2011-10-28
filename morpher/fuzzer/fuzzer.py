@@ -1,25 +1,17 @@
 '''
-Created on Oct 21, 2011
+Created on Oct 28, 2011
 
 @author: Rob
 '''
-import multiprocessing
-import ctypes
 
-class fuzzer(multiprocessing.Process):
+class Fuzzer(object):
     '''
     classdocs
     '''
 
-    def __init__(self, dll):
+
+    def __init__(self, params):
         '''
         Constructor
         '''
-        multiprocessing.Process.__init__(self)
-        self.dll = dll
-        
-    def run(self):
-        #Load stuff
-        print "Fuzzer starting, file: %s" % self.dll
-        target = ctypes.CDLL(self.dll)
-        print "Result of add call: %d" % target.add_num(2, 6)
+        pass

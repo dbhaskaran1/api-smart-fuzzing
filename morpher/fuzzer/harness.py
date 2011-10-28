@@ -6,55 +6,67 @@ Created on Oct 26, 2011
 
 import multiprocessing
 import ctypes
-import pickle
-import os
-from morpher.misc import config
+import sys
+import logging
 
 class Harness(multiprocessing.Process):
     '''
     classdocs
     '''
     
-    def __init__(self):
+    def __init__(self, cfg, pipe):
         '''
-        Constructor
+        Sets up pipes and config. NOT IN NEW PROCESS YET
         '''
         multiprocessing.Process.__init__(self)
-        cfg = config.Config()
-        # cfg.setupLogging()
-        # cfg.logConfig()
         self.cfg = cfg
-        # self.log = cfg.getLogger(__name__)
+        (inpipe, outpipe) = pipe
+        self.outpipe = outpipe
+        self.inpipe = inpipe
         
     def run(self):
-        #Load stuff
-        print "Harness running"
+        '''
+        Receives a list of memory objects to call on 
+        the target DLL
+        '''
+        self.cfg.setupLogging(__name__)
+        self.log = self.cfg.getLogger(__name__)
+        self.log.info("Harness is running...")
+        
+        self.outpipe.close()
         
         dlltype = self.cfg.get('fuzzer', 'dlltype')
         path = self.cfg.get('fuzzer', 'target')
-        fuzzfile = os.path.join(self.cfg.get('directories', 'datadir'), "fuzzed.pkl")
         
-        print path + "  " + fuzzfile
-        
+        # Load the target DLL
         if dlltype == "cdecl" :
             dll = ctypes.cdll
         else :
             dll = ctypes.windll
         target = dll.LoadLibrary(path)
         
-        f = open(fuzzfile, "rb")
-        m = pickle.load(f)
-        f.close()
+        self.log.info("DLL loaded, waiting for trace")
         
-       # for m in call_list :
-        print "Ordinal %d ESP %x fmt %s" %(m.ordinal, m.esp, m.arg_fmt)
-        print m.mem
-        args = m.getArgs()
-        print args
-        ordinal = m.ordinal
-        print target[ordinal](*args)
+        # Wait for the list to be sent. By the time this happens hooks
+        # should be set and debugger ready for us to run the trace
+        try :
+            mlist = self.inpipe.recv()
+        except :
+            self.log.exception("Error processing input from pipe")
+            sys.exit()
+        
+        # Run each function capture in order
+        for m in mlist :
+            args = m.getArgs()
+            ordinal = m.ordinal
+            self.log.info("Calling function ordinal %d", ordinal)
+            if self.cfg.logLevel() == logging.DEBUG :
+                self.log.debug(m.toString())
+            result = target[ordinal](*args)
+            self.log.info("Function returned result: %s", str(result))
             
-        print "done"
+        self.log.info("Harness run complete, shutting down")
+            
         
        
         

@@ -154,6 +154,24 @@ class Memory(object):
             p = tgtblk.translate(p)
             blk.write(paddr, (p,), fmt="P")
             
+    def toString(self):
+        '''
+        Report contents of memory
+        '''
+        memstr = "\nContents of Memory:\n"
+        if self.esp == None :
+            memstr += "Ordinal: %d, Arguments and ESP not specified\n" % self.ordinal
+        else :
+            memstr += "Ordinal: %d, Argument format: \"%s\", ESP: 0x%x\n" \
+                        % (self.ordinal, self.arg_fmt, self.esp)
+            memstr += "Arguments: " + str(self.getArgs()) + "\n"
+        memstr += "Registered Pointers: "
+        for p in self.P : 
+            memstr += "0x%x " % p
+        memstr += "\n"
+        for b in self.mem.values():
+            memstr += b.toString() + "\n"
+        return memstr
         
     def _findBlock(self, addr, size):
         '''

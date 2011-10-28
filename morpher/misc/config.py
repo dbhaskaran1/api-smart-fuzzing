@@ -5,7 +5,7 @@ Created on Oct 22, 2011
 '''  
 import os
 import ConfigParser
-import logging.handlers
+import logging
 import sys
 import atexit
 import null
@@ -71,29 +71,16 @@ class Config(ConfigParser.ConfigParser):
         statefile = os.path.join(self.get('directories', 'datadir'), "state.ini")
         self.set('output', 'statefile', statefile)
     
-    def setupLogging(self):
+    def setupLogging(self, root):
         '''
-        Initializes the logging system and resets existing logs
+        Initializes the logging system and resets existing logs for given root
         '''
-        # The logging object used for reporting
-        self.log = None
         # Are we even using logging?
         if not self.getboolean('logging', 'log') :
-            self.log = null.Null()
             return
         
         # Figure out the logging level
-        levelstr = self.get('logging','loglevel').lower().strip()
-        if levelstr == "debug" :
-            level = logging.DEBUG
-        elif levelstr == "info" :
-            level = logging.INFO
-        elif levelstr == "warning" :
-            level = logging.WARNING
-        elif levelstr == "error" :
-            level = logging.ERROR
-        else :
-            level = logging.CRITICAL
+        level = self.logLevel()
         
         # setup message format
         fmt = logging.Formatter("%(levelname)-10s %(name)-10s %(asctime)s %(message)s" \
@@ -106,67 +93,47 @@ class Config(ConfigParser.ConfigParser):
         
         # Create handler that prints to a file
         logdir = self.get('directories','logdir')
-        bufsize = self.get('logging', 'bufsize')
-        flush = self.get('logging','flushlevel')
-        
-        path = os.path.join(logdir, 'main.log')
+
+        # Clear our log path
+        path = os.path.join(logdir, root + ".log")
         if os.path.isfile(path) :
             os.remove(path)
-        main_f_hand = logging.FileHandler(path)
-        main_f_hand.setFormatter(fmt)
-        main_hand = logging.handlers.MemoryHandler(bufsize, flush, main_f_hand)
-        
-        # Fuzzer needs to log to a different file since its running concurrently
-        path = os.path.join(logdir, 'harness.log')
-        if os.path.isfile(path) :
-            os.remove(path)
-        fuzz_f_hand = logging.FileHandler(path)
-        fuzz_f_hand.setFormatter(fmt)
-        fuzz_hand = logging.handlers.MemoryHandler(bufsize, flush, fuzz_f_hand)
+    
+        file_hand = logging.FileHandler(path)
+        file_hand.setFormatter(fmt)
         
         # Create top-level logger "main"
-        main_log = logging.getLogger("morpher")
+        main_log = logging.getLogger(root)
+        main_log.propagate = False
         main_log.setLevel(level)
-        main_log.addHandler(main_hand)
+        main_log.addHandler(file_hand)
         main_log.addHandler(err_hand)
-        
-        # Cut off fuzzing process's logger from tree and
-        # assign it to a seperate log file
-        fuzz_log = logging.getLogger("morpher.fuzzer.harness")
-        fuzz_log.propagate = False
-        fuzz_log.setLevel(level)
-        fuzz_log.addHandler(fuzz_hand)
-        fuzz_log.addHandler(err_hand)
         
         # Ensure that logs are flushed on exit
         atexit.register(logging.shutdown)
         
         # Self-report
-        self.log = logging.getLogger(__name__)
-        self.log.info("Logging system initialized, log level: %s", levelstr)
+        log = logging.getLogger(root)
+        levelstr = self.get('logging','loglevel')
+        log.info("Logging system initialized, log level: %s", levelstr)
         
     def logLevel(self) :
         '''
         Returns the effective logging.LEVEL object of the root logger
         '''
-        if not self.log :
-            return logging.FATAL
+        levelstr = self.get('logging','loglevel')
+        if levelstr == "debug" :
+            level = logging.DEBUG
+        elif levelstr == "info" :
+            level = logging.INFO
+        elif levelstr == "warning" :
+            level = logging.WARNING
+        elif levelstr == "error" :
+            level = logging.ERROR
         else :
-            log = logging.getLogger("morpher")
-            return log.getEffectiveLevel()   
+            level = logging.CRITICAL
+        return level
         
-    def logConfig(self) :
-        '''
-        Report contents of cfg
-        '''
-        level = self.logLevel()
-        if level <= logging.INFO :
-            cfgstr = "\n\n\tConfiguration settings: \n"
-            for sec in self.sections() :
-                cfgstr += "\t[%s]\n" % sec
-                for (opt, val) in self.items(sec) :
-                    cfgstr += "\t  %s : %s\n" % (opt, val)
-            self.log.info(cfgstr)
             
     def getLogger(self, name):
         '''
@@ -177,12 +144,24 @@ class Config(ConfigParser.ConfigParser):
             return null.Null()
         else :
             return logging.getLogger(name)
+        
+    def toString(self) :
+        '''
+        Report contents of cfg
+        '''
+        cfgstr = "\n\n\tConfiguration settings: \n"
+        for sec in self.sections() :
+            cfgstr += "\t[%s]\n" % sec
+            for (opt, val) in self.items(sec) :
+                cfgstr += "\t  %s : %s\n" % (opt, val)
+        return cfgstr
     
+    '''
     def save(self):
-        '''
-        Save our state to a config file (.ini). Does not store
-        any info in the 'temp' section
-        '''
+        
+        #Save our state to a config file (.ini). Does not store
+        #any info in the 'temp' section
+        
         # Remove temps from config
         tlist = self.items('TEMP')
         self.remove_section('TEMP')
@@ -199,9 +178,9 @@ class Config(ConfigParser.ConfigParser):
         
         
     def load(self, filename):
-        '''
-        If we need to restore our state from saved config file
-        '''
+        
+        #If we need to restore our state from saved config file
+        
         self.log.info("Reading state from %s", filename)
         self.read(filename)
-
+    '''

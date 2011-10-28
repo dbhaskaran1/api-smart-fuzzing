@@ -1,0 +1,19 @@
+
+Contents of Memory:
+Ordinal: 1, Argument format: "Ic", ESP: 0x1000
+Arguments: [<cparam 'L' (3)>, <cparam 'c' (A)>]
+Registered Pointers: 
+Block - Size: 8, Address: 0x1000, Contents: '\x03\x00\x00\x00A\x00\x00\x00\x00\x00'
+
+Contents of Memory:
+Ordinal: 1, Argument format: "Ic", ESP: 0x2000
+Arguments: [<cparam 'L' (48)>, <cparam 'c' (]
+Registered Pointers: 
+Block - Size: 8, Address: 0x1000, Contents: '0\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+Block - Size: 8, Address: 0x2000, Contents: '0\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
+Contents of Memory:
+Ordinal: 1, Argument format: "Ic", ESP: 0x1000
+Arguments: [<cparam 'L' (1)>, <cparam 'c' (B)>]
+Registered Pointers: 
+Block - Size: 8, Address: 0x1000, Contents: '\x01\x00\x00\x00B\x00\x00\x00\x00\x00'

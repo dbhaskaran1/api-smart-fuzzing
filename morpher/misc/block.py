@@ -102,3 +102,11 @@ class Block(object):
             return 0
         offset = addr - self.addr
         return ctypes.addressof(self.data) + offset
+
+    def toString(self):
+        '''
+        Report contents of block
+        '''
+        blkstr = "Block - Size: %d, Address: 0x%x, Contents: " % (self.size, self.addr)
+        blkstr += repr(self.data.raw)
+        return blkstr

@@ -24,11 +24,10 @@ class Morpher(object):
         '''
         # The config object used for configuration info
         self.cfg = config.Config(**params)
-        self.cfg.setupLogging()
-        self.cfg.logConfig()
+        self.cfg.setupLogging("morpher")
         # The logging object used for reporting
         self.log = self.cfg.getLogger(__name__)
-
+        self.log.info(self.cfg.toString())
     
     def run(self):
         '''

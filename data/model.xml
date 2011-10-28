@@ -1,4 +1,4 @@
 <dll>
-    <function address="4787" name="add_num" ordinal="1"/>
-    <function address="4800" name="sub_num" ordinal="2"/>
+    <function address="4834" name="overflow" ordinal="1"/>
+    <function address="4787" name="write" ordinal="2"/>
 </dll>

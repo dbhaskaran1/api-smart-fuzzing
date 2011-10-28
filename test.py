@@ -3,11 +3,13 @@ Created on Oct 26, 2011
 
 @author: Rob
 '''
-from morpher.misc import block, memory
-from morpher.fuzzer import harness
+from morpher.misc import block, memory, config
+from morpher.fuzzer import harness, monitor
 import ctypes
 import pickle
 import os
+import time
+import run
 
 def printm(m):
     print "Ordinal %d" % m.ordinal
@@ -84,6 +86,11 @@ def testwrite():
     mk.setArgs(0x1000, "II")
     print mk.getArgs()
     
+    mk.registerPointer(0x2000)
+    mk.registerPointer(0x2004)
+    
+    print mk.toString()
+    
     path = os.getcwd()
     path = os.path.join(path, "data", "fuzzed.pkl")
     print path
@@ -118,14 +125,122 @@ def testHarness():
     f.close()
     # run the test
 
-    #cfg = config.Config()
-    #cfg.setupLogging()
-    #cfg.logConfig()
-    h = harness.Harness()
+    path = os.getcwd()
+    path = os.path.join(path, "data", "cfg.pkl")
+    cfg = config.Config()
+    cfg.setupLogging("morpher")
+        # The logging object used for reporting
+    log = cfg.getLogger("morpher.morpher")
+    log.info(cfg.toString())
+
+    f = open(path,"wb")
+    pickle.dump(cfg, f)
+    f.close()
+    h = harness.Harness(cfg)
+    print "IsAlive: " + str(h.is_alive())
+    print "Pid: " + str(h.pid)
+    
     h.start()
+    time.sleep(2)
+    print "started harness and slept 2 secs"
+    print "IsAlive: " + str(h.is_alive())
+    print "Pid: " + str(h.pid)
+    
+    h.terminate()
+    h.join() # Need to do this to collect exit code
+    print h.exitcode
+    # while True :
+    #   pass
+
+def testMonitorHang():
+    trace = []
+    
+    lst = []
+    k = block.Block(0x1000, "\x03\x00\x00\x00\x41\x00\x00\x00")
+    lst.append(k)
+    
+    m = memory.Memory(1, lst)
+    m.setArgs(0x1000, "Ic")
+    trace.append(m)
+    
+    lst = []
+    k = block.Block(0x1000, "\x30\x00\x00\x00\x00\x00\x00\x00")
+    lst.append(k)
+    k = block.Block(0x2000, "\x30\x00\x00\x00\x00\x00\x00\x00")
+    lst.append(k)
+    
+    m = memory.Memory(1, lst)
+    m.setArgs(0x2000, "Ic")
+    trace.append(m)
+    
+    lst = []
+    k = block.Block(0x1000, "\x01\x00\x00\x00\x42\x00\x00\x00")
+    lst.append(k)
+    
+    m = memory.Memory(1, lst)
+    m.setArgs(0x1000, "Ic")
+    trace.append(m)
+    
+    cfg = config.Config()
+    cfg.setupLogging("morpher")
+        # The logging object used for reporting
+    log = cfg.getLogger("morpher.morpher")
+    log.info(cfg.toString())
+    print "Calling fuzzer"
+    fuzz = monitor.Monitor(cfg, 1)
+    fuzz.run(trace)
+    print "Exiting"
+    
+def testMonitorCrash():
+    trace = []
+    
+    lst = []
+    k = block.Block(0x1000, "\x00\x00\x00\x00\x05\x00\x00\x00")
+    lst.append(k)
+    
+    m = memory.Memory(2, lst)
+    m.setArgs(0x1000, "II")
+    trace.append(m)
+    
+    lst = []
+    k = block.Block(0x1000, "\x00\x00\x00\x00\x05\x00\x00\x00")
+    lst.append(k)
+    k = block.Block(0x2000, "\x11\x00\x00\x00\x08\x00\x00\x00")
+    lst.append(k)
+    
+    m = memory.Memory(2, lst)
+    m.setArgs(0x1000, "II")
+    trace.append(m)
+    
+    cfg = config.Config()
+    cfg.setupLogging("morpher")
+        # The logging object used for reporting
+    log = cfg.getLogger("morpher.morpher")
+    log.info(cfg.toString())
+    print "Calling fuzzer"
+    fuzz = monitor.Monitor(cfg, 0)
+    fuzz.run(trace)
+    
+    trace = []
+    
+    lst = []
+    k = block.Block(0x1000, "\x00\x00\x00\x00\x04\x00\x00\x00")
+    lst.append(k)
+    k = block.Block(0x2000, "\x11\x00\x00\x00\x08\x00\x00\x00")
+    lst.append(k)
+    
+    m = memory.Memory(2, lst)
+    m.setArgs(0x1000, "II")
+    trace.append(m)
+    
+    fuzz.run(trace)
+    print "Exiting"
+    
+def testPlayback(filename):
+    run.playback(filename)
     
 if __name__ == '__main__':
-    testHarness()
+    testPlayback("C:\\Users\\Rob\\workspace\\ApiFuzzing\\data\\crashers\\address-0x61f812d9\\trace-0-run-0.pkl")
     
     '''
     b = block.Block(0xbfff, "\x41\x42\x43\x00\x07\x00\x00\x00")
