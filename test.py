@@ -4,7 +4,7 @@ Created on Oct 26, 2011
 @author: Rob
 '''
 from morpher.misc import block, memory, config
-from morpher.fuzzer import harness, monitor
+from morpher.fuzzer import harness, monitor, fuzzer
 import ctypes
 import pickle
 import os
@@ -218,7 +218,7 @@ def testMonitorCrash():
     log = cfg.getLogger("morpher.morpher")
     log.info(cfg.toString())
     print "Calling fuzzer"
-    fuzz = monitor.Monitor(cfg, 0)
+    fuzz = monitor.Monitor(cfg)
     fuzz.run(trace)
     
     trace = []
@@ -233,14 +233,52 @@ def testMonitorCrash():
     m.setArgs(0x1000, "II")
     trace.append(m)
     
+    fuzz.setTraceNum(1)
     fuzz.run(trace)
     print "Exiting"
+    
+def testPatching():
+    trace = []
+    
+    lst = []
+    k = block.Block(0x1000, "\x04\x20\x00\x00\x05\x00\x00\x00")
+    lst.append(k)
+    k = block.Block(0x2000, "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF")
+    lst.append(k)
+    
+    m = memory.Memory(2, lst)
+    m.registerPointer(0x1000)
+    m.setArgs(0x1000, "PI")
+    trace.append(m)
+    
+    cfg = config.Config()
+    cfg.setupLogging("morpher")
+        # The logging object used for reporting
+    log = cfg.getLogger("morpher.morpher")
+    log.info(cfg.toString())
+    print "Calling monitor"
+    fuzz = monitor.Monitor(cfg)
+    fuzz.run(trace)
+    
+    print "Exiting"    
+    
+def testFuzzing():
+    cfg = config.Config()
+    cfg.setupLogging("morpher")
+        # The logging object used for reporting
+    log = cfg.getLogger("morpher.morpher")
+    log.info(cfg.toString())
+    print "Calling Fuzzer"
+    fuzz = fuzzer.Fuzzer(cfg)
+    fuzz.fuzz()
+    
+    print "Exiting"  
     
 def testPlayback(filename):
     run.playback(filename)
     
 if __name__ == '__main__':
-    testPlayback("C:\\Users\\Rob\\workspace\\ApiFuzzing\\data\\crashers\\address-0x61f812d9\\trace-0-run-0.pkl")
+    testFuzzing()
     
     '''
     b = block.Block(0xbfff, "\x41\x42\x43\x00\x07\x00\x00\x00")

@@ -54,16 +54,23 @@ class Harness(multiprocessing.Process):
         except :
             self.log.exception("Error processing input from pipe")
             sys.exit()
+            
+        self.inpipe.close()
         
+        debug = self.cfg.logLevel() == logging.DEBUG
         # Run each function capture in order
         for m in mlist :
+            m.patch()
             args = m.getArgs()
             ordinal = m.ordinal
             self.log.info("Calling function ordinal %d", ordinal)
-            if self.cfg.logLevel() == logging.DEBUG :
+            if debug :
                 self.log.debug(m.toString())
             result = target[ordinal](*args)
             self.log.info("Function returned result: %s", str(result))
+            if debug :
+                self.log.debug("Memory contents after function call:")
+                self.log.debug(m.toString())
             
         self.log.info("Harness run complete, shutting down")
             

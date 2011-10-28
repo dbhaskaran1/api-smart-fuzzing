@@ -11,29 +11,61 @@ from morpher.pydbg import defines
 from morpher.utils import crash_binning
 import os
 import pickle
+import shutil
 
 class Monitor(object):
     '''
     classdocs
     '''
 
-    def __init__(self, cfg, tracenum):
+    def __init__(self, cfg):
         '''
-        Takes a config object and the "tracenum" to be used in the
-        name of dump files (its assumed that one Monitor is used for
-        one original trace, and that each run(trace) call corresponds
-        to a fuzzed version of the original (called an iteration)
+        Takes a config object and sets up Monitor. If data/crashers doesn't
+        exist, creates it, otherwise erases all directories inside that 
+        start with "address-". If data/hangers doesn't exist, creates it,
+        otherwise erases all file entries that start with "trace-" and
+        end with ".txt" or ".pkl"
         '''
+        # The config object we use for information
         self.cfg = cfg
+        # Our personal logging object
         self.log = cfg.getLogger(__name__)
+        # The number of seconds until we declare a timeout
         self.limit = cfg.getint('fuzzer', 'timeout')
-        self.tracenum = tracenum
+        # The trace and iteration number used to name dump files
+        self.tracenum = 0
         self.iter = 0
+        # Directories for hang and crash dumps, respectively
         datadir = self.cfg.get('directories', 'datadir')
         self.hangpath = os.path.join(datadir, "hangers")
         self.crashpath = os.path.join(datadir, "crashers")
-        self.crashbin = crash_binning.crash_binning()
+        # Clear out the hangers directories
+        if os.path.isdir(self.hangpath) :
+            for filename in os.listdir(self.hangpath) :
+                path = os.path.join(self.hangpath, filename)
+                if os.path.isfile(path) and filename.startswith('trace-') and \
+                    (filename.endswith('.txt') or filename.endswith('.pkl')):
+                    os.remove(path)
+        else :
+            os.mkdir(self.hangpath)
+        # Clear out the crasher directory 
+        if os.path.isdir(self.crashpath) :
+            for dirname in os.listdir(self.crashpath) :
+                path = os.path.join(self.crashpath, dirname)
+                if os.path.isdir(path) and dirname.startswith('address-'):
+                    shutil.rmtree(path)
+        else :
+            os.mkdir(self.crashpath)
+        # Stores the trace we just sent so we can dump it if needed
         self.last_trace = None
+        
+    def setTraceNum(self, tracenum):
+        '''
+        Change the trace number used for dumping files. Sets
+        iteration number back to 0
+        '''
+        self.tracenum = tracenum
+        self.iter = 0
         
     def run(self, trace):
         '''
@@ -65,13 +97,20 @@ class Monitor(object):
         t = threading.Timer(self.limit, self.timeout)
         
         # Send the trace
-        self.log.info("Sending trace, releasing harness")
-        outpipe.send(trace)
+        self.log.info("Sending trace %d run %d, releasing harness", self.tracenum, self.iter)
+        try :
+            outpipe.send(trace)
+        except :
+            msg = "Error sending trace over pipe to harness"
+            self.log.exception(msg)
+            raise Exception(msg)
         
         # Release the test harness
         t.start()
         dbg.run()
         t.cancel()
+        
+        outpipe.close()
         
         self.iter += 1
         self.log.info("Monitor exiting")
@@ -88,7 +127,6 @@ class Monitor(object):
         Set as handler for debugger's event loop (called at least every 100ms)
         '''
         if self.timed_out :
-            print "Program hung and timed out."
             # Dump  trace string to file
             dumpfile = os.path.join(self.hangpath, "trace-%d-run-%d.txt" % (self.tracenum, self.iter))
             f = open(dumpfile, "w")
@@ -102,23 +140,23 @@ class Monitor(object):
             pickle.dump(self.last_trace, f)
             f.close()
             # Terminate the process
-            self.log.info("Harness timed out before running to completion. Terminating.")
+            self.log.info("!!! Harness timed out !!!")
+            self.log.info("Terminating harness")
             dbg.terminate_process()  
         
     def crash_handler(self, dbg):
         '''
         If we've crashed, record the information and terminate
         '''
-        print "Program CRASHED!!!!!!!"
-        
         # Bin the crash and get the crash dump string
-        self.log.info("Registered a crash in the test harness")
-        self.crashbin.record_crash(dbg)
-        crashstr = self.crashbin.crash_synopsis()
-        self.log.debug("CRASH SYNOPSIS: %s", crashstr)
+        self.log.info("!!! Registered a crash in the test harness !!!")
+        crashbin = crash_binning.crash_binning()
+        crashbin.record_crash(dbg)
+        crashstr = crashbin.crash_synopsis()
+        self.log.debug("\n" + crashstr)
         
         # Create the directory for this bin if not existing
-        addr = self.crashbin.last_crash.exception_address
+        addr = crashbin.last_crash.exception_address
         dirpath = os.path.join(self.crashpath, "address-" + hex(addr))
         if not os.path.isdir(dirpath):
             os.mkdir(dirpath)

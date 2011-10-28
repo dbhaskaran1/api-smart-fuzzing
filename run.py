@@ -7,6 +7,7 @@ from morpher import morpher
 from morpher.misc import config
 import optparse
 import sys
+import os
 import ctypes
 import traceback
 import pickle
@@ -19,6 +20,8 @@ def playback(filename):
     cfg = config.Config()
     dlltype = cfg.get('fuzzer', 'dlltype')
     path = cfg.get('fuzzer', 'target')
+    
+    print "Attach your debugger to PID %d" % os.getpid()
     
     # Load the target DLL
     if dlltype == "cdecl" :
