@@ -29,7 +29,6 @@ class Parser(object):
         Analyzes the target DLL and header file to retrieve function prototypes.
         Outputs a XML file containing a model of the exported prototypes
         '''
-        
         # Get relevant configuration information
         modelfile = self.cfg.get('output', 'modelfile')
         

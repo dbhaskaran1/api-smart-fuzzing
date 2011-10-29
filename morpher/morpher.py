@@ -5,7 +5,8 @@ Created on Oct 21, 2011
 '''
 
 from parser import parser
-# import collector.collector as collector
+from collector import collector
+from fuzzer import fuzzer
 from misc import config
 
 
@@ -37,10 +38,9 @@ class Morpher(object):
         p = parser.Parser(self.cfg)
         p.parse()
         # Run the collector
-        #collector.collect()
-    
-        '''
-        fuzz = fuzzer.fuzzer(dll)
-        fuzz.start()
-        pid = fuzz.pid
-        '''
+        c = collector.Collector(self.cfg)
+        c.collect()
+        # Fuzz the traces and replay them
+        f = fuzzer.Fuzzer(self.cfg)
+        f.fuzz()
+

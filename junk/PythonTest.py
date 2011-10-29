@@ -13,13 +13,13 @@ if __name__ == '__main__':
     print "Running using cdll.libTestDLL...."
     kernel32 = ctypes.windll.kernel32
     print "Running using LoadLibrary"
-    name = "libTestDLL.dll"
+    name = "libCrash.dll"
     path = os.path.join(os.getcwd(), name)
     handle  = kernel32.LoadLibraryA(path)
     print "Handle %x" % handle
     error = kernel32.GetLastError()
     print "Load returned error: " + str(error)
-    address = kernel32.GetProcAddress(handle, "add_num")
+    address = kernel32.GetProcAddress(handle, "write")
     print kernel32.GetLastError()
     print "Address: %x" % address
     if error == 0 :

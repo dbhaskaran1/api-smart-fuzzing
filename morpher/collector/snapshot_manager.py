@@ -5,7 +5,7 @@ Created on Oct 26, 2011
 '''
 
 import range_union
-import pickle
+import logging
 from morpher.misc import block, memory
 
 class SnapshotManager(object):
@@ -40,7 +40,7 @@ class SnapshotManager(object):
         r = self.ru.Range
         r.low = start
         r.high = start + size -1
-        self.log.debug("Adding range from %p to %p to recorder", r.low, r.high)
+        self.log.debug("Adding range from %x to %x to recorder", r.low, r.high)
         self.ru.add(r)
         self.log.debug("%s", str(self.ru.rlist))
         
@@ -50,16 +50,16 @@ class SnapshotManager(object):
         '''
         self.pset.add(p)
         
-    def snapshot(self, f):
+    def snapshot(self):
         '''
         Uses the debugger to record the requested areas of the process's memory
-        and stores the contents as a pickled Memory object
+        and returns the contents as a Memory object
         '''
         blist = []
-        self.info("Recording snapshot to file")
+        self.log.info("Recording snapshot to file")
         # Record memory blocks
         for r in self.ru.rlist :
-            self.log.debug("Recording range from %p to %p", r.low, r.high)
+            self.log.debug("Recording range from %x to %x", r.low, r.high)
             addr = r.low
             size = r.high - r.low + 1
             data = self.dbg.read_process_memory(addr, size)
@@ -67,14 +67,17 @@ class SnapshotManager(object):
             blist.append(b)
         # Get function ordinal and arguments address
         ordinal = int(self.dbg.breakpoints[self.dbg.context.Eip].description)
-        argaddr = self.dbg.context.Esp
+        argaddr = self.dbg.context.Esp + 0x4
         fmt = self.fmt
-        self.log.debug("Setting ordinal to %d, esp to %p, argfmt to %s", ordinal, argaddr, fmt)
+        self.log.debug("Setting ordinal to %d, esp to %x, argfmt to %s", ordinal, argaddr, fmt)
         self.log.debug("Creating memory object")
         # Create the Memory snapshot and populate it
         m = memory.Memory(ordinal, blist)
         m.setArgs(argaddr, fmt)
         for p in self.pset :
-            m.registerPointer(p)
-        self.log.debug("Pickling memory object to file")
-        pickle.dump(m, f)
+            m.registerPointer(p)     
+        if self.cfg.logLevel() == logging.DEBUG:
+                self.log.debug("Returning memory object:")
+                self.log.debug(m.toString())
+        return m
+
