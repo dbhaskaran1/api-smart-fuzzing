@@ -81,7 +81,8 @@ class Monitor(object):
         self.log.info("Running the harness")
         h.start()
         
-        inpipe.close()
+        #inpipe.close()
+        self.inpipe = inpipe
         
         # Attach the debugger to the waiting harness
         pid = h.pid
@@ -111,6 +112,7 @@ class Monitor(object):
         t.cancel()
         
         outpipe.close()
+        self.inpipe.close()
         
         self.iter += 1
         self.log.info("Monitor exiting")
@@ -127,17 +129,23 @@ class Monitor(object):
         Set as handler for debugger's event loop (called at least every 100ms)
         '''
         if self.timed_out :
+            # Reduce trace to only calls that were made before the hang
+            trace = []
+            for m in self.last_trace :
+                if self.inpipe.poll() and self.inpipe.recv() == True :
+                    trace.append(m)
+                else :
+                    break
             # Dump  trace string to file
             dumpfile = os.path.join(self.hangpath, "trace-%d-run-%d.txt" % (self.tracenum, self.iter))
             f = open(dumpfile, "w")
-            for m in self.last_trace :
-                m.setActive()
+            for m in trace :
                 f.write(m.toString())
             f.close()
             # Dump the trace
             dumpfile = os.path.join(self.hangpath, "trace-%d-run-%d.pkl" % (self.tracenum, self.iter))
             f = open(dumpfile, "wb")
-            pickle.dump(self.last_trace, f)
+            pickle.dump(trace, f)
             f.close()
             # Terminate the process
             self.log.info("!!! Harness timed out !!!")
@@ -161,19 +169,28 @@ class Monitor(object):
         if not os.path.isdir(dirpath):
             os.mkdir(dirpath)
             
+        # Reduce trace to only calls that were made before the crash
+        trace = []
+        for m in self.last_trace :
+            if self.inpipe.poll() and self.inpipe.recv() == True :
+                trace.append(m)
+            else :
+                break
+        
         # Dump crash synopsis and trace string to file
         dumpfile = os.path.join(dirpath, "trace-%d-run-%d.txt" % (self.tracenum, self.iter))
         f = open(dumpfile, "w")
         f.write(crashstr)
-        for m in self.last_trace :
-            m.setActive()
+        
+        # Write out the trace information
+        for m in trace :
             f.write(m.toString())
         f.close()
         
-        # Dump the trace
+        # Dump the trace in pickle format
         dumpfile = os.path.join(dirpath, "trace-%d-run-%d.pkl" % (self.tracenum, self.iter))
         f = open(dumpfile, "wb")
-        pickle.dump(self.last_trace, f)
+        pickle.dump(trace, f)
         f.close()
                 
         # Done reporting, terminate the harness

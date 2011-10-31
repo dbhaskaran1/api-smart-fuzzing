@@ -8,5 +8,6 @@ __all__ = \
     "null",
     "block",
     "memory",
-    "typeconvert"
+    "typeconvert",
+    "tag"
 ]

@@ -6,5 +6,6 @@ __all__ = \
 [
     "fuzzer",
     "harness",
-    "monitor"
+    "monitor",
+    "mutator"
 ]

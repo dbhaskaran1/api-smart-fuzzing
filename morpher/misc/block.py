@@ -52,7 +52,7 @@ class Block(object):
         is used to unpack and return the contents as a tuple of objects
         '''
         if not self.active :
-            raise Exception("Operation attempted on inactive block")
+            self.setActive(True)
         if fmt != None :
             size = struct.calcsize(fmt)
         elif size == None :
@@ -75,7 +75,7 @@ class Block(object):
         a byte string before being written to memory
         '''
         if not self.active :
-            raise Exception("Operation attempted on inactive block")
+            self.setActive(True)
         if fmt != None:
             data = struct.pack(fmt, *data)
         buf = ctypes.c_char_p(data)
@@ -96,7 +96,7 @@ class Block(object):
         new address of the location the old address used to point to.
         '''
         if not self.active :
-            raise Exception("Operation attempted on inactive block")
+            self.setActive(True)
         # Null stays as Null!
         if addr == 0 :
             return 0

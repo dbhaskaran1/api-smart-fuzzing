@@ -105,7 +105,7 @@ class Collector(object):
                 # Concatenate the remaining tokens and return as arg string
                 args = ""
                 for j in range(i + 1, len(strings)) :
-                    args += strings[j]
+                    args += strings[j] + " "
                 return (exepath, args)
         # Couldn't parse the command line  
         return (None, None)

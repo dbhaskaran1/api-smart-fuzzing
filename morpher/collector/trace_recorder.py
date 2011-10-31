@@ -11,7 +11,6 @@ class TraceRecorder(object):
     classdocs
     '''
 
-
     def __init__(self, cfg, model):
         '''
         Constructor
@@ -72,9 +71,11 @@ class TraceRecorder(object):
         self.log.debug("Breakpoint tripped, address %x", dbg.context.Eip)
         ordinal = int(dbg.breakpoints[dbg.context.Eip].description)
         addr = dbg.context.Esp + 0x4
-        
+        # Create the snapshot manager
         sm = snapshot_manager.SnapshotManager(self.cfg, dbg, ordinal, "II")
-        sm.add(addr, 8)
-        self.trace.append(sm.snapshot())
+        # Populate the snapshot with memory objects to record
+        sm.addObjects(addr, "II")
+        # Take the snapshot
+        self.trace.append(sm.snapshot())          
         
         return defines.DBG_CONTINUE 

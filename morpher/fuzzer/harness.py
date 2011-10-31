@@ -33,7 +33,7 @@ class Harness(multiprocessing.Process):
         self.log = self.cfg.getLogger(__name__)
         self.log.info("Harness is running...")
         
-        self.outpipe.close()
+        #self.outpipe.close()
         
         dlltype = self.cfg.get('fuzzer', 'dlltype')
         path = self.cfg.get('fuzzer', 'target')
@@ -66,6 +66,9 @@ class Harness(multiprocessing.Process):
             self.log.info("Calling function ordinal %d", ordinal)
             if debug :
                 self.log.debug(m.toString())
+            # Let Harness know we're about to make a call
+            self.outpipe.send(True)
+
             result = target[ordinal](*args)
             self.log.info("Function returned result: %s", str(result))
             if debug :
@@ -73,6 +76,7 @@ class Harness(multiprocessing.Process):
                 self.log.debug(m.toString())
             
         self.log.info("Harness run complete, shutting down")
+        self.outpipe.close()
             
         
        

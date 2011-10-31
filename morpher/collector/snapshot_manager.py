@@ -6,7 +6,8 @@ Created on Oct 26, 2011
 
 import range_union
 import logging
-from morpher.misc import block, memory
+import struct
+from morpher.misc import block, memory, tag
 
 class SnapshotManager(object):
     '''
@@ -24,31 +25,33 @@ class SnapshotManager(object):
         self.log = cfg.getLogger(__name__)
         # The pydbg object used to read the process memory for the snapshot
         self.dbg = dbg
-        # Set of pointers that need to be registered int he snapshot
-        self.pset = set()
+        # Set of tags that need to be registered in the snapshot
+        self.tset = set()
         # The RangeUnion object used to construct the final list of memory
         # ranges we need to capture for the snapshot
         self.ru = range_union.RangeUnion()
         # The function's format
         self.fmt = fmt
         
-    def add(self, start, size):
+    def addObjects(self, start, fmt):
         '''
-        Adds the memory range from start to start + size -1 to the list
-        of areas we need to record for the snapshot
+        Adds the memory range from start to start + (size of fmt) -1 to the list
+        of areas we need to record for the snapshot and adds a tag for each object
         '''
+        curaddr = start
+        for c in fmt :
+            # Create the tag
+            t = tag.Tag(curaddr, c)
+            self.tset.add(t)
+            curaddr += struct.calcsize(c)
+        # Create the range to record
+        size = struct.calcsize(fmt)
         r = self.ru.Range
         r.low = start
         r.high = start + size -1
-        self.log.debug("Adding range from %x to %x to recorder", r.low, r.high)
+        self.log.debug("Adding objects type %s, total range from %x to %x to recorder", fmt, r.low, r.high)
         self.ru.add(r)
         self.log.debug("%s", str(self.ru.rlist))
-        
-    def registerPointer(self, p):
-        '''
-        Add pointer address to list of pointers that need to be registered
-        '''
-        self.pset.add(p)
         
     def snapshot(self):
         '''
@@ -74,10 +77,10 @@ class SnapshotManager(object):
         # Create the Memory snapshot and populate it
         m = memory.Memory(ordinal, blist)
         m.setArgs(argaddr, fmt)
-        for p in self.pset :
-            m.registerPointer(p)     
+        for t in self.tset :
+            m.addTag(t)     
         if self.cfg.logLevel() == logging.DEBUG:
-                self.log.debug("Returning memory object:")
-                self.log.debug(m.toString())
+            self.log.debug("Returning memory object:")
+            self.log.debug(m.toString())
         return m
 

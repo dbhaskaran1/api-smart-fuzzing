@@ -4,12 +4,13 @@ Created on Oct 26, 2011
 @author: Rob
 '''
 from morpher.misc import block, memory, config
-from morpher.fuzzer import harness, monitor, fuzzer
+from morpher.fuzzer import harness, monitor, fuzzer, mutator
 import ctypes
 import pickle
 import os
 import time
 import run
+import sys
 
 def printm(m):
     print "Ordinal %d" % m.ordinal
@@ -274,11 +275,55 @@ def testFuzzing():
     
     print "Exiting"  
     
+def testMutator():
+    cfg = config.Config()
+    cfg.setupLogging("morpher")
+        # The logging object used for reporting
+    log = cfg.getLogger("morpher.morpher")
+    log.info(cfg.toString())
+    print "Calling Mutator"
+    mut = mutator.Mutator(cfg)
+    print "Mutating c, A"
+    print mut.mutate("c", "A")
+    print "Mutating I, 32"
+    print mut.mutate("I", 32)
+    print "Mutating i, 32"
+    print mut.mutate("i", 32)
+    print "Mutating h, 32"
+    print mut.mutate("h", 32)
+    print "Mutating Q, 4000000000000"
+    print mut.mutate("Q", 4000000000000)
+    print "Mutating f, 3.14"
+    print mut.mutate("f", 3.14)
+    print "Mutating P, 0xdeadbeef"
+    print mut.mutate("P", 0xdeadbeef)
+    
+    print "Exiting"
+    
 def testPlayback(filename):
     run.playback(filename)
     
+def testProgressBar():
+    # works for windows
+    sys.stdout.write("[=    ]\r")
+    time.sleep(1)
+    sys.stdout.write("[==   ]\r")
+    time.sleep(1)
+    sys.stdout.write("[===  ]\r")
+    time.sleep(1)
+    sys.stdout.write("[==== ]\r")
+    time.sleep(1)
+    sys.stdout.write("[=====] Done!\n")
+
+    #if sys.platform.lower().startswith('win'):
+    #           print self, '\r',
+    #       else:
+    #           print self, chr(27) + '[A'
+    
 if __name__ == '__main__':
-    testFuzzing()
+    testProgressBar()
+    
+    
     
     '''
     b = block.Block(0xbfff, "\x41\x42\x43\x00\x07\x00\x00\x00")

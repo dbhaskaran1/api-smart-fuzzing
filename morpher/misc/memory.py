@@ -21,12 +21,12 @@ class Memory(object):
         '''
         # Dictionary of address -> char[] 
         self.mem = {}
-        # Set of addresses of pointers that need to be patched
-        self.P = set()
+        # Set of object tags in our memory
+        self.tags = set()
         # Ordinal of the function we recorded
         self.ordinal = ordinal
-        # Stack pointer we recorded
-        self.esp = None
+        # Address of arguments we recorded
+        self.arg_addr = None
         # Format of arguments
         self.arg_fmt = None
         
@@ -39,9 +39,10 @@ class Memory(object):
         '''
         Pickle calls this method when dumping. We turn off all the
         blocks so they can be pickled, then give it our __dict__ as
-        thats what pickle normally uses. Note that we're no longer
-        usable after that - if you need to keep using this object,
-        call self.setActive()
+        thats what pickle normally uses. Note that the blocks will 
+        automatically re-activate themselves individually when an
+        operation is performed on them - otherwise you can use 
+        setActive to force them all to reactivate right then
         '''
         for b in self.mem.values() :
             b.setActive(False)
@@ -68,40 +69,39 @@ class Memory(object):
         Saves the location and format of the arguments for the
         saved function call
         '''
-        self.esp = addr
+        self.arg_addr = addr
         self.arg_fmt = fmt
         
     def getArgTypes(self):
         '''
         Turns the fmt type of the snaspshot into a list of ctypes
         '''
-        return [typeconvert.fmt2ctype[self.arg_fmt[i]] \
-                for i in range(0, len(self.arg_fmt)) ]
+        return [typeconvert.fmt2ctype[c] for c in self.arg_fmt ]
 
     def getArgs(self):
         '''
         Used to return the a list of args for the saved function call
         '''
         types = self.getArgTypes()
-        values = self.read(self.esp, fmt=self.arg_fmt)
+        values = self.read(self.arg_addr, fmt=self.arg_fmt)
         return [t.from_param(v) for (t,v) in zip(types, values)]
         
-    def registerPointer(self, addr):
+    def addTag(self, tag):
         '''
-        Given an address of a pointer in this Memory,
-        registers the pointer for patching
+        Given a tag for an object in this Memory,
+        registers the tag
         '''
-        size = struct.calcsize("P")
-        blk = self._findBlock(addr, size)
+        size = struct.calcsize(tag.fmt)
+        blk = self._findBlock(tag.addr, size)
         if blk == None :
-            raise Exception("Address %x size %d not a valid address range" % (addr, size))
-        self.P.add(addr)
+            raise Exception("Address %x size %d not a valid address range" % (tag.addr, size))
+        self.tags.add(tag)
         
-    def unregisterPointer(self, addr):
+    def removeTag(self, tag):
         '''
-        Removes a pointer address previously passed to registerPointer
+        Removes a tag previously given to addTag
         '''
-        self.P.remove(addr)
+        self.tags.remove(tag)
     
     def read(self, addr, size = None, fmt = None):
         '''
@@ -143,31 +143,32 @@ class Memory(object):
         we update its value to point to the ACTUAL address of the
         same object it originally pointed to
         '''
-        for paddr in self.P :
-            blk = self._findBlock(paddr, struct.calcsize("P"))
-            p = blk.read(paddr, fmt="P")[0]
-            # Don't try to translate Null
-            if p == 0 :
-                continue
-            
-            tgtblk = self._findBlock(p, 1)
-            p = tgtblk.translate(p)
-            blk.write(paddr, (p,), fmt="P")
+        for tag in self.tags :
+            if tag.fmt == "P" :
+                blk = self._findBlock(tag.addr, struct.calcsize("P"))
+                p = blk.read(tag.addr, fmt="P")[0]
+                # Don't try to translate Null
+                if p == 0 :
+                    continue
+                
+                tgtblk = self._findBlock(p, 1)
+                p = tgtblk.translate(p)
+                blk.write(tag.addr, (p,), fmt="P")
             
     def toString(self):
         '''
         Report contents of memory
         '''
         memstr = "\nContents of Memory:\n"
-        if self.esp == None :
-            memstr += "Ordinal: %d, Arguments and ESP not specified\n" % self.ordinal
+        if self.arg_addr == None :
+            memstr += "Ordinal: %d, Arguments and  not specified\n" % self.ordinal
         else :
-            memstr += "Ordinal: %d, Argument format: \"%s\", ESP: 0x%x\n" \
-                        % (self.ordinal, self.arg_fmt, self.esp)
+            memstr += "Ordinal: %d, Argument format: \"%s\", Arguments address: 0x%x\n" \
+                        % (self.ordinal, self.arg_fmt, self.arg_addr)
             memstr += "Arguments: " + str(self.getArgs()) + "\n"
-        memstr += "Registered Pointers: "
-        for p in self.P : 
-            memstr += "0x%x " % p
+        memstr += "Tags: "
+        for t in self.tags : 
+            memstr += "0x%x - %s   " % (t.addr, t.fmt)
         memstr += "\n"
         for b in self.mem.values():
             memstr += b.toString() + "\n"

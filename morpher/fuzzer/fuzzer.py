@@ -6,6 +6,7 @@ Created on Oct 28, 2011
 import os
 import pickle
 import monitor
+import mutator
 
 class Fuzzer(object):
     '''
@@ -20,6 +21,7 @@ class Fuzzer(object):
         self.cfg = cfg
         self.log = cfg.getLogger(__name__)
         self.monitor = monitor.Monitor(self.cfg)
+        self.mutator = mutator.Mutator(self.cfg)
         self.tracenum = 0
     
     def fuzz(self):
@@ -44,10 +46,25 @@ class Fuzzer(object):
                 self.log.info("Trace number set to %d", self.tracenum)
                 self.monitor.setTraceNum(self.tracenum)
                 self.tracenum += 1
-                # FUZZ LOOP STARTS HERE
-                self.log.info("Sending new fuzzed trace to monitor")
-                self.monitor.run(trace)
-                # FUZZ LOOP ENDS HERE
+                # Main fuzzing loop
+                for mem in trace :
+                    self.log.info("Fuzzing next memory image in trace")
+                    for tag in mem.tags :
+                        self.log.info("Fuzzing next tag in memory image")
+                        # Store original value for this tag
+                        (old,) = mem.read(tag.addr, fmt=tag.fmt)
+                        fuzzed_values = self.mutator.mutate(tag.fmt, old)
+                        # Fuzz this tag
+                        for v in fuzzed_values :
+                            # Write the fuzzed value
+                            mem.write(tag.addr, (v,), fmt=tag.fmt)
+                            self.log.info("Sending new fuzzed trace to monitor")
+                            self.monitor.run(trace)
+                        # Restore tag value
+                        self.log.info("Tag fuzzing complete, restoring value")
+                        mem.write(tag.addr, (old,), fmt=tag.fmt)
+                    self.log.info("Memory image fuzzing complete")
+                self.log.info("Trace fuzzing complete")
         self.log.info("All traces fuzzed. Fuzzer shutting down")
             
             
