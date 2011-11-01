@@ -7,6 +7,7 @@ import os
 import pickle
 import monitor
 import mutator
+import logging
 
 class Fuzzer(object):
     '''
@@ -19,7 +20,7 @@ class Fuzzer(object):
         Constructor
         '''
         self.cfg = cfg
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         self.monitor = monitor.Monitor(self.cfg)
         self.mutator = mutator.Mutator(self.cfg)
         self.tracenum = 0
@@ -28,7 +29,7 @@ class Fuzzer(object):
         '''
         '''
         # Get the stored traces
-        datadir = self.cfg.get('directories', 'datadir')
+        datadir = self.cfg.get('directories', 'data')
         tracedir = os.path.join(datadir, "traces")
         self.log.info("Checking trace directory for files: %s", tracedir)
         flist = os.listdir(tracedir)

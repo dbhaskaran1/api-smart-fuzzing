@@ -20,7 +20,7 @@ class Parser(object):
         # The Config object used for configuration info
         self.cfg = cfg
         # The logging object used for reporting
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         # The dllexp.exe wrapper object for getting export data
         self.dllexp = dllexp.DllExp(cfg)
         
@@ -30,10 +30,10 @@ class Parser(object):
         Outputs a XML file containing a model of the exported prototypes
         '''
         # Get relevant configuration information
-        modelfile = self.cfg.get('output', 'modelfile')
+        modelfile = self.cfg.get('output', 'model')
         
         # Check if parsing is enabled
-        if not self.cfg.getboolean('parser', 'parsing') : 
+        if not self.cfg.getboolean('parser', 'enabled') : 
             # Check that model already exists
             self.log.info("Parsing is off, using existing model.xml")
             if not os.path.exists(modelfile) :
@@ -69,7 +69,7 @@ class Parser(object):
             
         # Write out the model file
         self.log.info("Writing XML tree to model file")
-        if self.cfg.logLevel() == logging.DEBUG :
+        if self.log.isEnabledFor(logging.DEBUG) :
             xmlstr = top.toprettyxml(indent="    ", newl="\n")
             self.log.debug("\n\nXML Tree:\n%s\n", xmlstr)
         try :

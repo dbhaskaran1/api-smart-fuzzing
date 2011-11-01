@@ -6,6 +6,7 @@ Created on Oct 25, 2011
 import subprocess
 import os
 import csv
+import logging
 
 class DllExp(object):
     '''
@@ -19,8 +20,8 @@ class DllExp(object):
         # The Config object used for configuration info
         self.cfg = cfg
         # The logging object used for reporting
-        self.log = cfg.getLogger(__name__)
-        tools = self.cfg.get('directories', 'tooldir')
+        self.log = logging.getLogger(__name__)
+        tools = self.cfg.get('directories', 'tools')
         # The path to the dllexp.exe tool
         self.toolpath = os.path.join(tools, 'dllexp.exe')
         
@@ -31,7 +32,7 @@ class DllExp(object):
         '''
         # Retrieve configuration info
         dllpath = self.cfg.get('fuzzer', 'target')
-        data = self.cfg.get('directories', 'datadir')
+        data = self.cfg.get('directories', 'data')
         outpath = os.path.join(data, 'functions.csv')
         
         

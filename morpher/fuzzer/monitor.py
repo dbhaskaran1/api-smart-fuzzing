@@ -12,6 +12,7 @@ from morpher.utils import crash_binning
 import os
 import pickle
 import shutil
+import logging
 
 class Monitor(object):
     '''
@@ -29,14 +30,14 @@ class Monitor(object):
         # The config object we use for information
         self.cfg = cfg
         # Our personal logging object
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         # The number of seconds until we declare a timeout
         self.limit = cfg.getint('fuzzer', 'timeout')
         # The trace and iteration number used to name dump files
         self.tracenum = 0
         self.iter = 0
         # Directories for hang and crash dumps, respectively
-        datadir = self.cfg.get('directories', 'datadir')
+        datadir = self.cfg.get('directories', 'data')
         self.hangpath = os.path.join(datadir, "hangers")
         self.crashpath = os.path.join(datadir, "crashers")
         # Clear out the hangers directories

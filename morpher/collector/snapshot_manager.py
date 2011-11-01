@@ -22,7 +22,7 @@ class SnapshotManager(object):
         # The Config object used for configuration info
         self.cfg = cfg
         # The logging object used for reporting
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         # The pydbg object used to read the process memory for the snapshot
         self.dbg = dbg
         # Set of tags that need to be registered in the snapshot
@@ -79,7 +79,7 @@ class SnapshotManager(object):
         m.setArgs(argaddr, fmt)
         for t in self.tset :
             m.addTag(t)     
-        if self.cfg.logLevel() == logging.DEBUG:
+        if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug("Returning memory object:")
             self.log.debug(m.toString())
         return m

@@ -7,6 +7,7 @@ import xml.dom.minidom as xml
 import trace_recorder
 import os
 import pickle
+import logging
 
 class Collector(object):
     '''
@@ -19,13 +20,13 @@ class Collector(object):
         # The Config object used for configuration info
         self.cfg = cfg
         # The logging object used for reporting
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         # The DLL xml model used for collection
         self.model = None
         # The current trace number
         self.counter = 0
         # The path to the directory for storing traces
-        datadir = self.cfg.get('directories', 'datadir')
+        datadir = self.cfg.get('directories', 'data')
         self.tracedir = os.path.join(datadir, 'traces')
         # Clear out or create data/traces
         if os.path.isdir(self.tracedir) :
@@ -42,8 +43,8 @@ class Collector(object):
         Top-level collection routine
         '''
         # Get configuration info
-        modelfile = self.cfg.get('output', 'modelfile')
-        listfile = self.cfg.get('collector', 'listfile')
+        modelfile = self.cfg.get('output', 'model')
+        listfile = self.cfg.get('collector', 'list')
         
         # Get the XML model
         self.log.info("Reading the model.xml file")

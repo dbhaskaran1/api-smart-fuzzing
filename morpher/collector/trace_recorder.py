@@ -6,6 +6,8 @@ Created on Oct 28, 2011
 import os
 from morpher.collector import snapshot_manager
 from morpher.pydbg import pydbg, defines
+import logging
+
 class TraceRecorder(object):
     '''
     classdocs
@@ -18,7 +20,7 @@ class TraceRecorder(object):
         # The Config object used for configuration info
         self.cfg = cfg
         # The logging object used for reporting
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         # The xml model used for traversal
         self.model = model
         # The target dll

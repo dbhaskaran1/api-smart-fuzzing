@@ -5,6 +5,7 @@ Created on Oct 30, 2011
 '''
 import random
 import struct
+import logging
 
 class Mutator(object):
     '''
@@ -16,12 +17,12 @@ class Mutator(object):
         Constructor
         '''
         self.cfg = cfg
-        self.log = cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         self.mutational = cfg.getboolean('fuzzer', 'mutational')
-        self.mutaterange = cfg.getint('fuzzer', 'mutaterange')
+        self.mutaterange = cfg.getint('fuzzer', 'mutate_range')
         self.heuristic = cfg.getboolean('fuzzer', 'heuristic')
         self.random = cfg.getboolean('fuzzer', 'random')
-        self.randcases = cfg.getint('fuzzer', 'randcases')
+        self.randcases = cfg.getint('fuzzer', 'random_cases')
         self.generators = {
                             "c": self._getChars,
                             "b": self._getInts,

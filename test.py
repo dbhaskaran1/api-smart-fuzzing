@@ -305,6 +305,7 @@ def testPlayback(filename):
     
 def testProgressBar():
     # works for windows
+    # Twenty ='s seems best
     sys.stdout.write("[=    ]\r")
     time.sleep(1)
     sys.stdout.write("[==   ]\r")

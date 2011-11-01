@@ -8,6 +8,7 @@ import multiprocessing
 import ctypes
 import sys
 import logging
+from morpher.misc import logsetup
 
 class Harness(multiprocessing.Process):
     '''
@@ -29,13 +30,13 @@ class Harness(multiprocessing.Process):
         Receives a list of memory objects to call on 
         the target DLL
         '''
-        self.cfg.setupLogging(__name__)
-        self.log = self.cfg.getLogger(__name__)
+        logsetup.setupLogging(self.cfg, __name__)
+        self.log = logging.getLogger(__name__)
         self.log.info("Harness is running...")
         
         #self.outpipe.close()
         
-        dlltype = self.cfg.get('fuzzer', 'dlltype')
+        dlltype = self.cfg.get('fuzzer', 'dll_type')
         path = self.cfg.get('fuzzer', 'target')
         
         # Load the target DLL
@@ -57,7 +58,7 @@ class Harness(multiprocessing.Process):
             
         self.inpipe.close()
         
-        debug = self.cfg.logLevel() == logging.DEBUG
+        debug = self.log.isEnabledFor(logging.DEBUG)
         # Run each function capture in order
         for m in mlist :
             m.patch()

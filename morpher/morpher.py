@@ -7,8 +7,8 @@ Created on Oct 21, 2011
 from parser import parser
 from collector import collector
 from fuzzer import fuzzer
-from misc import config
-
+from misc import config, logsetup
+import logging
 
 class Morpher(object):
     '''
@@ -25,9 +25,9 @@ class Morpher(object):
         '''
         # The config object used for configuration info
         self.cfg = config.Config(**params)
-        self.cfg.setupLogging("morpher")
+        logsetup.setupLogging(self.cfg)
         # The logging object used for reporting
-        self.log = self.cfg.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
         self.log.info(self.cfg.toString())
     
     def run(self):
