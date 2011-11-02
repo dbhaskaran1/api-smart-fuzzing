@@ -5,7 +5,8 @@ Class documentation
 __all__ = \
 [
     "config",
-    "null",
+    "logsetup",
+    "statusreporter",
     "block",
     "memory",
     "typeconvert",

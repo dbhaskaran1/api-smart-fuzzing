@@ -8,6 +8,7 @@ import trace_recorder
 import os
 import pickle
 import logging
+from morpher.misc import statusreporter
 
 class Collector(object):
     '''
@@ -28,6 +29,18 @@ class Collector(object):
         # The path to the directory for storing traces
         datadir = self.cfg.get('directories', 'data')
         self.tracedir = os.path.join(datadir, 'traces')
+        self.modelpath = os.path.join(datadir, 'model.xml')
+    
+    def collect(self):
+        '''
+        Top-level collection routine
+        '''
+        # Check if collecting is enabled
+        if not self.cfg.getboolean('collector', 'enabled') : 
+            print "  Collector DISABLED\n"
+            self.log.info("Collecting is off")
+            return
+        
         # Clear out or create data/traces
         if os.path.isdir(self.tracedir) :
             for filename in os.listdir(self.tracedir) :
@@ -37,23 +50,18 @@ class Collector(object):
                     os.remove(path)
         else :
             os.mkdir(self.tracedir)
-    
-    def collect(self):
-        '''
-        Top-level collection routine
-        '''
+            
         # Get configuration info
-        modelfile = self.cfg.get('output', 'model')
         listfile = self.cfg.get('collector', 'list')
         
         # Get the XML model
         self.log.info("Reading the model.xml file")
         try :
-            f = open(modelfile)
+            f = open(self.modelpath)
         except :
             msg = "Could not open model file %s" 
-            self.log.exception(msg, modelfile)
-            raise Exception(msg % modelfile)
+            self.log.exception(msg, self.modelpath)
+            raise Exception(msg % self.modelpath)
         self.model = xml.parse(f).getElementsByTagName("dll")[0]
         f.close()
         
@@ -67,10 +75,16 @@ class Collector(object):
             msg = "Could not open collection list %s"
             self.log.exception(msg, listfile)
             raise Exception(msg % listfile)
+        lines = []
+        for line in f :
+            lines.append(line)
+        f.close()
         
         self.log.info("Beginning collection process")
+        sr = statusreporter.StatusReporter(total=len(lines))
+        sr.start("  Collector is running...")
         self.counter = 0
-        for line in f :
+        for line in lines :
             # Record this trace
             (exe,args) = self.parseline(line)
             if exe == None :
@@ -88,8 +102,8 @@ class Collector(object):
             pickle.dump(trace, tracefile)
             tracefile.close()
             self.counter += 1
+            sr.pulse()
         
-        f.close()
         self.log.info("Collection process complete")
       
     def parseline(self,line):

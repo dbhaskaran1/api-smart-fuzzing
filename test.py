@@ -3,7 +3,7 @@ Created on Oct 26, 2011
 
 @author: Rob
 '''
-from morpher.misc import block, memory, config
+from morpher.misc import block, memory, config, statusreporter, sectionreporter
 from morpher.fuzzer import harness, monitor, fuzzer, mutator
 import ctypes
 import pickle
@@ -300,6 +300,22 @@ def testMutator():
     
     print "Exiting"
     
+def testCountValues():
+    cfg = config.Config()
+    print "Calling Mutator"
+    mut = mutator.Mutator(cfg)
+    print "Mutating char"
+    print len(mut._getChars("c", "A"))
+    print "Mutating int"
+    print len(mut._getInts("i", 32))
+    print "Mutating unsigned int"
+    print len(mut._getUints("i", 32))
+    print "Mutating floats"
+    print len(mut._getFloats("f", 32))
+    print "Mutating pointers"
+    print len(mut._getPointers("P", 32))
+
+    
 def testPlayback(filename):
     run.playback(filename)
     
@@ -321,8 +337,43 @@ def testProgressBar():
     #       else:
     #           print self, chr(27) + '[A'
     
+def testStatusReporter():
+    sr = statusreporter.StatusReporter(total=30)
+    i = 0
+    sr.start("Running StatusReporter test...")
+    while i < 30 :
+        time.sleep(1)
+        sr.pulse()
+        i += 1
+
+def testSectionReporter():
+    sr = sectionreporter.SectionReporter(3)
+    i = 0
+    sr.start("Running SectionReporter test...")
+    sr.startSection(1, 10)
+    while i < 10 :
+        time.sleep(1)
+        sr.pulse()
+        i += 1
+    sr.endSection()
+    sr.startSection(2, 5)
+    i = 0
+    while i < 5 :
+        time.sleep(2)
+        sr.pulse()
+        i += 1
+    sr.endSection()
+    sr.startSection(3, 20)
+    i = 0
+    while i < 10 :
+        time.sleep(1)
+        sr.pulse(2)
+        i += 1
+    sr.endSection()
+    print "Done with test"
+    
 if __name__ == '__main__':
-    testProgressBar()
+    testSectionReporter()
     
     
     

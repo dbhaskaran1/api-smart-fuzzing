@@ -7,6 +7,7 @@ Created on Oct 26, 2011
 import multiprocessing
 import ctypes
 import sys
+import os
 import logging
 from morpher.misc import logsetup
 
@@ -21,6 +22,7 @@ class Harness(multiprocessing.Process):
         '''
         multiprocessing.Process.__init__(self)
         self.cfg = cfg
+        self.daemon = True
         (inpipe, outpipe) = pipe
         self.outpipe = outpipe
         self.inpipe = inpipe
@@ -58,6 +60,8 @@ class Harness(multiprocessing.Process):
             
         self.inpipe.close()
         
+        # Take down stdout for the shared library
+        self.kill_output()
         debug = self.log.isEnabledFor(logging.DEBUG)
         # Run each function capture in order
         for m in mlist :
@@ -69,7 +73,6 @@ class Harness(multiprocessing.Process):
                 self.log.debug(m.toString())
             # Let Harness know we're about to make a call
             self.outpipe.send(True)
-
             result = target[ordinal](*args)
             self.log.info("Function returned result: %s", str(result))
             if debug :
@@ -78,7 +81,25 @@ class Harness(multiprocessing.Process):
             
         self.log.info("Harness run complete, shutting down")
         self.outpipe.close()
-            
+
+    def kill_output(self):
+        '''
+        Disables stdout and stderr for the DLL by redirecting to a NUL
+        (fake) file, but keeps Python's stdout and stderr intact
+        '''
+        sys.stdout.flush() 
+        sys.stderr.flush()
+        # Save original version of stdout/err
+        saved_out = os.dup(1)
+        saved_err = os.dup(2)
+        # Set stdout/err to fake device
+        devnull = os.open('NUL', os.O_WRONLY)
+        os.dup2(devnull, 1)
+        os.dup2(devnull, 2)
+        os.close(devnull)
+        # Restore Python's stdout/err (library won't see this)
+        sys.stdout = os.fdopen(saved_out, 'w')
+        sys.stderr = os.fdopen(saved_err, 'w')
         
        
         

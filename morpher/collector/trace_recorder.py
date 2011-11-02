@@ -39,7 +39,7 @@ class TraceRecorder(object):
         # Load the application in a debugger
         self.log.info("Loaded program, setting breakpoints")
         dbg = pydbg.pydbg()
-        dbg.load(exe, command_line=arg)
+        dbg.load(exe, command_line=arg, create_new_console=True, show_window=False)
         # Set breakpoints on functions
         dbg.set_callback(defines.LOAD_DLL_DEBUG_EVENT, self.load_handler)
           

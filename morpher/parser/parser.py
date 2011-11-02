@@ -7,6 +7,7 @@ import xml.dom.minidom as xml
 import logging
 import os
 import dllexp
+from morpher.misc import statusreporter
 
 class Parser(object):
     '''
@@ -30,25 +31,23 @@ class Parser(object):
         Outputs a XML file containing a model of the exported prototypes
         '''
         # Get relevant configuration information
-        modelfile = self.cfg.get('output', 'model')
+        datadir = self.cfg.get('directories', 'data')
+        modelpath = os.path.join(datadir, 'model.xml')
         
         # Check if parsing is enabled
         if not self.cfg.getboolean('parser', 'enabled') : 
-            # Check that model already exists
-            self.log.info("Parsing is off, using existing model.xml")
-            if not os.path.exists(modelfile) :
-                msg = "Model file does not exist"
-                self.log.error(msg)
-                raise Exception(msg)
-            else :
-                return
-        
+            self.log.info("Parsing is disabled")
+            print "  Parser DISABLED\n"
+            return
+            
+        sr = statusreporter.StatusReporter(total=2)
+        sr.start("  Parser is running...")
         # Parsing is enabled
         self.log.info("Beginning parse routine")
         
         # Retrieve the export table from the DLL
         exportlist = self.dllexp.getFunctions()
-    
+        sr.pulse()
         # INSERT ADDITIONAL PARSING LOGIC HERE
         # Right now all this does is read the export 
         # table of the DLL and write out that information
@@ -73,12 +72,13 @@ class Parser(object):
             xmlstr = top.toprettyxml(indent="    ", newl="\n")
             self.log.debug("\n\nXML Tree:\n%s\n", xmlstr)
         try :
-            f = open(modelfile, mode="w")
+            f = open(modelpath, mode="w")
         except :
             msg = "Couldn't open %s"
-            self.log.exception(msg, modelfile)
-            raise Exception(msg % modelfile)
+            self.log.exception(msg, modelpath)
+            raise Exception(msg % modelpath)
         top.writexml(f, addindent="    ", newl="\n")
         f.close()
+        sr.pulse()
 
     

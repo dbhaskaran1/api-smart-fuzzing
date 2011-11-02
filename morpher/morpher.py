@@ -9,6 +9,7 @@ from collector import collector
 from fuzzer import fuzzer
 from misc import config, logsetup
 import logging
+import os
 
 class Morpher(object):
     '''
@@ -34,6 +35,15 @@ class Morpher(object):
         '''
         Runs the morpher program
         '''
+        dllname = self.cfg.get('fuzzer','target')
+        dllname = os.path.split(dllname)[1]
+        
+        print "\n\n  Welcome to Morpher, the Automatic Mutational API Fuzzer"
+        print "  =======================================================\n"
+        
+        print "  Current Target: %s" % dllname
+        print "  See the log files for more details\n"
+        print "  Launching Morpher chain, please wait:\n"
         # Run the parser
         p = parser.Parser(self.cfg)
         p.parse()
@@ -43,4 +53,5 @@ class Morpher(object):
         # Fuzz the traces and replay them
         f = fuzzer.Fuzzer(self.cfg)
         f.fuzz()
-
+        
+        print "\n  Morpher run complete.\n"

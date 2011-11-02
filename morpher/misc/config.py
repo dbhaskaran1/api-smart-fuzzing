@@ -34,10 +34,8 @@ class Config(ConfigParser.ConfigParser):
         # Add some more information
         
         # Is debug mode on?
-        debug = self.getboolean('output', 'debug') or \
-                params.get("debug", False) or \
+        debug = params.get("debug", False) or \
                 self.get('logging', 'level').lower() == "debug"
-        self.set('output', 'debug', "on" if debug else "off")
         if debug :
             self.set('logging', 'level', "debug")
             
@@ -56,14 +54,6 @@ class Config(ConfigParser.ConfigParser):
         elif not self.has_option('collector', 'list') :
             # If no list file supplied, raise error
             raise Exception("No collection list specified in config or command line")
-  
-        # Where to find the model.xml file
-        modelfile = os.path.join(self.get('directories', 'data'), "model.xml")
-        self.set('output', 'model', modelfile)
-        
-        # Where to save our state as an INI file
-        statefile = os.path.join(self.get('directories', 'data'), "state.ini")
-        self.set('output', 'state', statefile)
         
     def toString(self):
         '''

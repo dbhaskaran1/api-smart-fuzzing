@@ -1,4 +1,4 @@
 <dll>
-    <function address="4834" name="overflow" ordinal="1"/>
-    <function address="4787" name="write" ordinal="2"/>
+    <function address="4781" name="overflow" ordinal="1"/>
+    <function address="4734" name="write" ordinal="2"/>
 </dll>

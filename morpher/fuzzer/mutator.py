@@ -27,7 +27,7 @@ class Mutator(object):
                             "c": self._getChars,
                             "b": self._getInts,
                             "B": self._getUints,
-                            "h": self. _getInts,
+                            "h": self._getInts,
                             "H": self._getUints,
                             "i": self._getInts,
                             "I": self._getUints,
@@ -104,7 +104,7 @@ class Mutator(object):
                 if item <= max_int and item >= min_int:
                     values.add(item)
         if self.heuristic :
-            for x in range(8) :
+            for x in range(4) :
                 values.add(min_int + x)
                 values.add(max_int - x)
                 values.add(min_int/2 + x)
@@ -142,7 +142,7 @@ class Mutator(object):
                 if item <= max_int and item >= min_int:
                     values.add(item)
         if self.heuristic :
-            for x in range(8) :
+            for x in range(4) :
                 values.add(min_int + x)
                 values.add(max_int - x)
                 values.add(max_int/2 + x)
