@@ -98,6 +98,13 @@ class Monitor(object):
         self.timed_out = False
         t = threading.Timer(self.limit, self.timeout)
         
+        if self.log.isEnabledFor(logging.DEBUG) :
+            self.log.debug("Trace %d contents: ", self.tracenum)
+            string = ""
+            for m in trace:
+                string += m.toString()
+            self.log.debug(string)
+        
         # Send the trace
         self.log.info("Sending trace %d run %d, releasing harness", self.tracenum, self.iter)
         try :

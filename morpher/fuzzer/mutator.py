@@ -213,6 +213,10 @@ class Mutator(object):
         minp = 0
         maxp = (2**(struct.calcsize(fmt)*8))- 1
         values = set()
+        # Can't do mutational like this because pointer will not be to
+        # valid memory, it'll point outside valid ctype and crash
+        # python - not really a case we want.
+        '''
         if self.mutational :
             mut = set()
             # Fuzz in a range around original
@@ -233,9 +237,11 @@ class Mutator(object):
             for item in mut:
                 if item <= maxp and item >= minp:
                     values.add(item)
+        '''
         if self.heuristic :
             values.add(0)
             values.add(-1)
+            values.add(0x80000000)
         if self.random :
             random.seed()
             for _ in range(0, self.randcases) :

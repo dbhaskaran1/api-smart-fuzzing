@@ -39,7 +39,7 @@ class Block(object):
             self.data = ctypes.create_string_buffer(self.data)
             self.active = True
         else :
-            self.data = self.data.raw
+            self.data = self.data.raw[:self.size]
             self.active = False
             
         
@@ -107,6 +107,8 @@ class Block(object):
         '''
         Report contents of block
         '''
+        if not self.active :
+            self.setActive(True)
         blkstr = "Block - Size: %d, Address: 0x%x, Contents: " % (self.size, self.addr)
         blkstr += repr(self.data.raw)
         return blkstr

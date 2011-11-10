@@ -25,10 +25,8 @@ class Memory(object):
         self.tags = set()
         # Ordinal of the function we recorded
         self.ordinal = ordinal
-        # Address of arguments we recorded
-        self.arg_addr = None
-        # Format of arguments
-        self.arg_fmt = None
+        # Ordered list of argument tags
+        self.args = []
         
         for b in blklist :
             if not b.active :
@@ -64,26 +62,24 @@ class Memory(object):
         for b in self.mem.values() :
             b.setActive(True)
             
-    def setArgs(self, addr, fmt):
+    def setArgs(self, args):
         '''
-        Saves the location and format of the arguments for the
-        saved function call
+        Saves an ordered list of argument tags for this function call
         '''
-        self.arg_addr = addr
-        self.arg_fmt = fmt
+        self.args = args
         
     def getArgTypes(self):
         '''
-        Turns the fmt type of the snaspshot into a list of ctypes
+        Turns the fmt type of the snapshot into a list of ctypes
         '''
-        return [typeconvert.fmt2ctype[c] for c in self.arg_fmt ]
+        return [typeconvert.fmt2ctype[tag.fmt] for tag in self.args ]
 
     def getArgs(self):
         '''
         Used to return the a list of args for the saved function call
         '''
         types = self.getArgTypes()
-        values = self.read(self.arg_addr, fmt=self.arg_fmt)
+        values = [self.read(tag.addr, fmt=tag.fmt)[0] for tag in self.args]
         return [t.from_param(v) for (t,v) in zip(types, values)]
         
     def addTag(self, tag):
@@ -147,11 +143,11 @@ class Memory(object):
             if tag.fmt == "P" :
                 blk = self._findBlock(tag.addr, struct.calcsize("P"))
                 p = blk.read(tag.addr, fmt="P")[0]
-                # Don't try to translate Null
-                if p == 0 :
-                    continue
-                
                 tgtblk = self._findBlock(p, 1)
+                # Don't try to translate pointers to memory we don't control
+                # EG pointers to kernel memory, NULL pointers
+                if tgtblk == None :
+                    continue
                 p = tgtblk.translate(p)
                 blk.write(tag.addr, (p,), fmt="P")
             
@@ -160,11 +156,14 @@ class Memory(object):
         Report contents of memory
         '''
         memstr = "\nContents of Memory:\n"
-        if self.arg_addr == None :
-            memstr += "Ordinal: %d, Arguments and  not specified\n" % self.ordinal
+        if len(self.args) == 0 :
+            memstr += "Ordinal: %d, Arguments not specified\n" % self.ordinal
         else :
-            memstr += "Ordinal: %d, Argument format: \"%s\", Arguments address: 0x%x\n" \
-                        % (self.ordinal, self.arg_fmt, self.arg_addr)
+            memstr += "Ordinal: %d\n" % (self.ordinal)
+            memstr += "Argument Tags: "
+            for t in self.args : 
+                memstr += "0x%x - %s   " % (t.addr, t.fmt)
+            memstr += "\n"
             memstr += "Arguments: " + str(self.getArgs()) + "\n"
         memstr += "Tags: "
         for t in self.tags : 

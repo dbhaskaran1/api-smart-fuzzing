@@ -14,7 +14,7 @@ class SnapshotManager(object):
     classdocs
     '''
 
-    def __init__(self, cfg, dbg, oridinal, fmt):
+    def __init__(self, cfg, dbg, ordinal):
         '''
         Constructor takes a cfg object and a pydbg debugger attached to
         the target process
@@ -25,13 +25,27 @@ class SnapshotManager(object):
         self.log = logging.getLogger(__name__)
         # The pydbg object used to read the process memory for the snapshot
         self.dbg = dbg
+        # Ordinal of the function we are snapshotting
+        self.ordinal = ordinal
         # Set of tags that need to be registered in the snapshot
         self.tset = set()
         # The RangeUnion object used to construct the final list of memory
         # ranges we need to capture for the snapshot
         self.ru = range_union.RangeUnion()
-        # The function's format
-        self.fmt = fmt
+        # The function's argument tags
+        self.args = []
+        
+    def addArg(self, start, fmt):
+        '''
+        Add a tag (start, fmt) to our list of argument tags
+        '''
+        self.args.append(tag.Tag(start, fmt))
+        
+    def checkObject(self, start, fmt):
+        '''
+        Returns True if the tag (start, fmt) is already in the manager
+        '''
+        return tag.Tag(start, fmt) in self.tset
         
     def addObjects(self, start, fmt):
         '''
@@ -46,9 +60,7 @@ class SnapshotManager(object):
             curaddr += struct.calcsize(c)
         # Create the range to record
         size = struct.calcsize(fmt)
-        r = self.ru.Range
-        r.low = start
-        r.high = start + size -1
+        r = self.ru.Range(start, start + size - 1)
         self.log.debug("Adding objects type %s, total range from %x to %x to recorder", fmt, r.low, r.high)
         self.ru.add(r)
         self.log.debug("%s", str(self.ru.rlist))
@@ -69,14 +81,11 @@ class SnapshotManager(object):
             b = block.Block(addr, data)
             blist.append(b)
         # Get function ordinal and arguments address
-        ordinal = int(self.dbg.breakpoints[self.dbg.context.Eip].description)
-        argaddr = self.dbg.context.Esp + 0x4
-        fmt = self.fmt
-        self.log.debug("Setting ordinal to %d, esp to %x, argfmt to %s", ordinal, argaddr, fmt)
+        self.log.debug("Setting ordinal to %d", self.ordinal)
         self.log.debug("Creating memory object")
         # Create the Memory snapshot and populate it
-        m = memory.Memory(ordinal, blist)
-        m.setArgs(argaddr, fmt)
+        m = memory.Memory(self.ordinal, blist)
+        m.setArgs(self.args)
         for t in self.tset :
             m.addTag(t)     
         if self.log.isEnabledFor(logging.DEBUG):

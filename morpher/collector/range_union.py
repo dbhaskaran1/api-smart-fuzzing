@@ -37,6 +37,7 @@ class RangeUnion(object):
         range (1, 4) and range (5, 7) can be merged to range (1, 7)
         '''
         if len(self.rlist) == 0 :
+            c = RangeUnion.Range(c.low, c.high)
             self.rlist.append(c)
             return
         x = c

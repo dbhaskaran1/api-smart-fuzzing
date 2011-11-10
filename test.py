@@ -11,6 +11,7 @@ import os
 import time
 import run
 import sys
+import struct
 
 def printm(m):
     print "Ordinal %d" % m.ordinal
@@ -373,9 +374,12 @@ def testSectionReporter():
     print "Done with test"
     
 if __name__ == '__main__':
-    testSectionReporter()
-    
-    
+    print struct.calcsize("PP")
+    print struct.calcsize("Pc")
+    print struct.calcsize("cP")
+    print struct.calcsize("PcP")
+    print struct.calcsize("hcPc")
+    print struct.calcsize("hcPP0P")
     
     '''
     b = block.Block(0xbfff, "\x41\x42\x43\x00\x07\x00\x00\x00")
