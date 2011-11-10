@@ -8,6 +8,7 @@ import range_union
 import logging
 import struct
 from morpher.misc import block, memory, tag
+from morpher.pydbg import pdx
 
 class SnapshotManager(object):
     '''
@@ -77,7 +78,12 @@ class SnapshotManager(object):
             self.log.debug("Recording range from %x to %x", r.low, r.high)
             addr = r.low
             size = r.high - r.low + 1
-            data = self.dbg.read_process_memory(addr, size)
+            try :
+                data = self.dbg.read_process_memory(addr, size)
+            except pdx.pdx :
+                # Bad pointers shouldn't have gotten to this point
+                self.log.error("Error trying to access memory for range %x to %x", r.low, r.high)
+                continue
             b = block.Block(addr, data)
             blist.append(b)
         # Get function ordinal and arguments address

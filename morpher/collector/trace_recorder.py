@@ -5,9 +5,11 @@ Created on Oct 28, 2011
 '''
 import os
 from morpher.collector import snapshot_manager
-from morpher.pydbg import pydbg, defines
+from morpher.pydbg import pydbg, defines, pdx
+from morpher.misc import typeconvert
 import logging
 import struct
+import ctypes
 
 class TraceRecorder(object):
     '''
@@ -30,6 +32,8 @@ class TraceRecorder(object):
         self.trace = []
         # Stack alignment
         self.stack_align = self.cfg.getint('collector', 'stack_align')
+        # Stored info table for performance boost
+        self.info_table = {}
     
     def record(self, exe, arg):
         '''
@@ -150,22 +154,29 @@ class TraceRecorder(object):
             if not self.sm.checkObject(addr, basictype) :
                 self.sm.addObjects(addr, basictype)
             # If it's a pointer follow it even if it's already been added -
-            # the type it points to could be different
+            # the type it points to could be different. Don't follow if
+            # its just "P" (a void * pointer)
             print "len of type %d" % len(paramtype)
             if paramtype[0] == "P" and len(paramtype) > 1:
-                print "Recusring"
+                print "Recursing"
                 # Get the pointer's type (everything after the first P)
                 ptype = paramtype[1:]
                 # Read the pointer's value (address of object)
-                size = struct.calcsize("P")
-                raw = self.dbg.read_process_memory(addr, size)
-                paddr = struct.unpack("P", raw)[0]
+                try :
+                    size = struct.calcsize("P")
+                    raw = self.dbg.read_process_memory(addr, size)
+                    paddr = struct.unpack("P", raw)[0]
+                except pdx.pdx :
+                    # Shouldn't have gotten here, someone gave bad argument
+                    # This is a bad object, not in valid memory
+                    # We'll discard it during the snapshot
+                    return
                 # Check if this paddr is to valid user memory
-                print "Pointer value: %x" % paddr 
-                print "Test %s" % (0x28fef8 >= 0x80000000)
-                if paddr == 0 or paddr >= 0x80000000:
-                    # NULL pointer or pointer to kernel memory, can't collect
-                    print "can't collect: paddr = 0 %s" % (paddr >=0x80000000)
+                (size, _) = self.getInfo(ptype)
+                try : 
+                    self.dbg.read_process_memory(paddr, size)
+                except pdx.pdx :
+                    print "can't collect: paddr = %x" % (paddr)
                     return
                 # Tag the pointed-to object
                 self.tag(paddr, ptype)
@@ -175,7 +186,11 @@ class TraceRecorder(object):
         Given a fundamental type (ex. "P") or user type (ex. "1"), returns a tuple consisting
         of the (size, alignment) of that type
         '''
+        
         if paramtype.isdigit() :
+            # Check our stored table
+            if self.info_table.has_key(paramtype) :
+                return self.info_table[paramtype]
             # This is a structure or union - get the corresponding node
             for typenode in self.model.getElementsByTagName("usertype"):
                 if int(typenode.getAttribute("id")) == int(paramtype) :
@@ -197,6 +212,8 @@ class TraceRecorder(object):
                     offset += size;
                 # Insert end padding to match structure alignment 
                 offset = self.align(offset, maxalign)
+                # store the result for future reference
+                self.info_table[paramtype] = (offset, maxalign)
                 return (offset, maxalign)
             else :
                 # Unions have size equal to the size of their largest member, 
@@ -209,11 +226,18 @@ class TraceRecorder(object):
                         maxalign = alignment
                     if size > maxsize :
                         maxsize = size
-                return (maxalign, maxsize)
+                # store the result for future reference
+                self.info_table[paramtype] = (maxsize, maxalign)
+                return (maxsize, maxalign)
         else :
             # This is a standard type. Alignment is equal to type's size
+            # Check our stored table
+            if self.info_table.has_key(paramtype[0]) :
+                return self.info_table[paramtype[0]]
             size = struct.calcsize(paramtype[0])
-            alignment = size
+            alignment = ctypes.alignment(typeconvert.fmt2ctype[paramtype[0]])
+            # store the result for future reference
+            self.info_table[paramtype[0]] = (size, alignment)
             return (size, alignment)
         
     def align(self, address, alignment):
