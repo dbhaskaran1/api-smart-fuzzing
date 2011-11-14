@@ -99,7 +99,7 @@ class Monitor(object):
         t = threading.Timer(self.limit, self.timeout)
         
         if self.log.isEnabledFor(logging.DEBUG) :
-            self.log.debug("Trace %d contents: ", self.tracenum)
+            self.log.debug("Trace %d run %d contents: ", self.tracenum, self.iter)
             string = ""
             for m in trace:
                 string += m.toString()

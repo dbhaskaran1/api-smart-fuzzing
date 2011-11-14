@@ -104,7 +104,7 @@ class Mutator(object):
                 if item <= max_int and item >= min_int:
                     values.add(item)
         if self.heuristic :
-            for x in range(4) :
+            for x in range(5) :
                 values.add(min_int + x)
                 values.add(max_int - x)
                 values.add(min_int/2 + x)
@@ -210,34 +210,11 @@ class Mutator(object):
         return values
     
     def _getPointers(self, fmt, orig):
-        minp = 0
         maxp = (2**(struct.calcsize(fmt)*8))- 1
         values = set()
-        # Can't do mutational like this because pointer will not be to
+        # Can't do mutational because pointer will not be to
         # valid memory, it'll point outside valid ctype and crash
         # python - not really a case we want.
-        '''
-        if self.mutational :
-            mut = set()
-            # Fuzz in a range around original
-            for x in range(self.mutaterange,0, -1):
-                mut.add(orig + x)
-                mut.add(orig + x*2)
-                mut.add(orig + x*4)
-                mut.add(orig + x*8)
-                mut.add(orig + x*16)
-                mut.add(orig + x*32)
-                mut.add(orig - x)
-                mut.add(orig - x*2)
-                mut.add(orig - x*4)
-                mut.add(orig - x*8)
-                mut.add(orig - x*16)
-                mut.add(orig - x*32)
-            # Might have generated a few illegal values, check for them
-            for item in mut:
-                if item <= maxp and item >= minp:
-                    values.add(item)
-        '''
         if self.heuristic :
             values.add(0)
             values.add(-1)

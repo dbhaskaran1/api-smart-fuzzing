@@ -11,4 +11,5 @@ __all__ = \
     "parser",
     "pydbg",
     "utils",
+    "trace"
 ]

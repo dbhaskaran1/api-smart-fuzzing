@@ -3,8 +3,9 @@ Created on Oct 26, 2011
 
 @author: Rob
 '''
-from morpher.misc import block, memory, config, statusreporter, sectionreporter
+from morpher.misc import block, memory, config, statusreporter, sectionreporter, typeconvert
 from morpher.fuzzer import harness, monitor, fuzzer, mutator
+from morpher.trace import typemanager, trace, snapshot, tag
 import ctypes
 import pickle
 import os
@@ -12,6 +13,7 @@ import time
 import run
 import sys
 import struct
+import xml.dom.minidom as xml
 
 def printm(m):
     print "Ordinal %d" % m.ordinal
@@ -373,13 +375,80 @@ def testSectionReporter():
     sr.endSection()
     print "Done with test"
     
+def testTypes():
+    modelpath = "data\\model.xml"
+    f = open(modelpath)
+    model = xml.parse(f).getElementsByTagName("dll")[0]
+    f.close()
+    tc = typemanager.TypeManager(model)
+    # Write it to a pickle file
+    path = "junk\\test.pkl"
+    f = open(path, "wb")
+    pickle.dump(tc, f)
+    f.close()
+    
+    # Read it back in
+    path = "junk\\test.pkl"
+    f = open(path, "rb")
+    newtc = pickle.load(f)
+    f.close()
+    
+    myclass = newtc.getClass("2")
+    print ctypes.alignment(myclass)
+    print ctypes.sizeof(myclass)
+    print myclass._fields_
+    myinst = myclass('A', 0x7, 0x0, 'B')
+    print getattr(myinst, "field-0")
+
+def testSnapshot():
+    modelpath = "data\\model.xml"
+    f = open(modelpath)
+    model = xml.parse(f).getElementsByTagName("dll")[0]
+    f.close()
+
+    
+    lst = []
+    k = block.Block(0x1000, "\x41\x00\x07\x00\xFF\xFF\xFF\xFF" + "\x00\x00\x00\x00\x00\x00\x00\x00" + "\x42\xFF\xFF\xFF\xFF\xFF\xFF\xFF" + "\x00\x00\x00\x00\x00\x00\x00\x00")
+    lst.append(k)
+    k = block.Block(0x2000, "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF")
+    lst.append(k)
+    
+    s = snapshot.Snapshot(2, lst)
+    argtag = tag.Tag(0x1000, "4")
+    s.addTag(argtag)
+    args = [argtag]
+    s.setArgs(args)
+    
+    mytrace = trace.Trace(model, [s])
+    
+    # Write it to a pickle file
+    path = "junk\\test.pkl"
+    f = open(path, "wb")
+    pickle.dump(mytrace, f)
+    f.close()
+    
+    # Read it back in
+    path = "junk\\test.pkl"
+    f = open(path, "rb")
+    mytrace = pickle.load(f)
+    f.close()
+    
+    for args in mytrace.replay() :
+        print args[0]
+        print args[0].field_0
+        print args[0].field_0.field_0
+        print args[0].field_0.field_1
+        print args[0].field_0.field_2
+        print args[0].field_0.field_3
+        print args[0].field_1
+        print args[0].field_1.field_0
+        print args[0].field_1.field_1
+        print args[0].field_1.field_2
+
 if __name__ == '__main__':
-    print struct.calcsize("PP")
-    print struct.calcsize("Pc")
-    print struct.calcsize("cP")
-    print struct.calcsize("PcP")
-    print struct.calcsize("hcPc")
-    print struct.calcsize("hcPP0P")
+    testSnapshot()
+    
+        
     
     '''
     b = block.Block(0xbfff, "\x41\x42\x43\x00\x07\x00\x00\x00")

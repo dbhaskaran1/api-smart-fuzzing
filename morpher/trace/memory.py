@@ -4,14 +4,13 @@ Created on Oct 26, 2011
 @author: Rob
 '''
 import struct
-import typeconvert
 
 class Memory(object):
     '''
     classdocs
     '''
     
-    def __init__(self, ordinal, blklist):
+    def __init__(self, blklist):
         '''
         Saves the ordinal of the function that this is a snapshot 
         of, then takes a list of Blocks and adds them to the internal
@@ -21,12 +20,8 @@ class Memory(object):
         '''
         # Dictionary of address -> char[] 
         self.mem = {}
-        # Set of object tags in our memory
-        self.tags = set()
-        # Ordinal of the function we recorded
-        self.ordinal = ordinal
-        # Ordered list of argument tags
-        self.args = []
+        # Set of addresses of pointers
+        self.pointers = set()
         
         for b in blklist :
             if not b.active :
@@ -62,43 +57,19 @@ class Memory(object):
         for b in self.mem.values() :
             b.setActive(True)
             
-    def setArgs(self, args):
+    def registerPointer(self, addr):
         '''
-        Saves an ordered list of argument tags for this function call
         '''
-        self.args = args
+        size = struct.calcsize("P")
+        if not self.containsAddress(addr, size):
+            raise Exception("Pointer address is not valid")
+        self.pointers.add(addr)
         
-    def getArgTypes(self):
+    def unregisterPointer(self, addr):
         '''
-        Turns the fmt type of the snapshot into a list of ctypes
         '''
-        return [typeconvert.fmt2ctype[tag.fmt] for tag in self.args ]
-
-    def getArgs(self):
-        '''
-        Used to return the a list of args for the saved function call
-        '''
-        types = self.getArgTypes()
-        values = [self.read(tag.addr, fmt=tag.fmt)[0] for tag in self.args]
-        return [t.from_param(v) for (t,v) in zip(types, values)]
-        
-    def addTag(self, tag):
-        '''
-        Given a tag for an object in this Memory,
-        registers the tag
-        '''
-        size = struct.calcsize(tag.fmt)
-        blk = self._findBlock(tag.addr, size)
-        if blk == None :
-            raise Exception("Address %x size %d not a valid address range" % (tag.addr, size))
-        self.tags.add(tag)
-        
-    def removeTag(self, tag):
-        '''
-        Removes a tag previously given to addTag
-        '''
-        self.tags.remove(tag)
-    
+        self.pointers.discard(addr)
+            
     def read(self, addr, size = None, fmt = None):
         '''
         Given an address in this Memory and a size in bytes,
@@ -139,42 +110,30 @@ class Memory(object):
         we update its value to point to the ACTUAL address of the
         same object it originally pointed to
         '''
-        for tag in self.tags :
-            if tag.fmt == "P" :
-                blk = self._findBlock(tag.addr, struct.calcsize("P"))
-                p = blk.read(tag.addr, fmt="P")[0]
-                tgtblk = self._findBlock(p, 1)
-                # Don't try to translate pointers to memory we don't control
-                # EG pointers to kernel memory, NULL pointers
-                if tgtblk == None :
-                    continue
-                p = tgtblk.translate(p)
-                blk.write(tag.addr, (p,), fmt="P")
+        for addr in self.pointers :
+            blk = self._findBlock(addr, struct.calcsize("P"))
+            p = blk.read(addr, fmt="P")[0]
+            tgtblk = self._findBlock(p, 1)
+            # Don't try to translate pointers to memory we don't control
+            # EG pointers to kernel memory, NULL pointers
+            if tgtblk == None :
+                continue
+            p = tgtblk.translate(p)
+            blk.write(addr, (p,), fmt="P")
             
+    def containsAddress(self, addr, size=1):
+        '''
+        '''
+        return self._findBlock(addr, size) != None
+    
     def toString(self):
         '''
         Report contents of memory
         '''
         memstr = "\nContents of Memory:\n"
-        if len(self.args) == 0 :
-            memstr += "Ordinal: %d, Arguments not specified\n" % self.ordinal
-        else :
-            memstr += "Ordinal: %d\n" % (self.ordinal)
-            memstr += "Argument Tags: "
-            for t in self.args : 
-                memstr += "0x%x - %s   " % (t.addr, t.fmt)
-            memstr += "\n"
-            memstr += "Arguments: "
-            for a in self.getArgs() :
-                try :
-                    s = str(a)
-                    memstr += s + " "
-                except :
-                    memstr += "(unprintable) "
-            memstr += "\n"
-        memstr += "Tags: "
-        for t in self.tags : 
-            memstr += "0x%x - %s   " % (t.addr, t.fmt)
+        memstr += "Pointers: "
+        for p in self.pointers : 
+            memstr += "0x%x  " % (p)
         memstr += "\n"
         for b in self.mem.values():
             memstr += b.toString() + "\n"

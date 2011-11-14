@@ -21,3 +21,4 @@ fmt2ctype = {
              "d": ctypes.c_double,
              "P": ctypes.c_void_p
             }
+

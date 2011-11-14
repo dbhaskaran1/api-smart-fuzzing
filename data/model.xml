@@ -4,6 +4,21 @@
 		<param type="PPi"/>
 		<param type="Pl"/>
 	</usertype>
+	<usertype id="2" type="struct">
+		<param type="c"/>
+		<param type="h"/>
+		<param type="d"/>
+		<param type="c"/>
+	</usertype>
+	<usertype id="3" type="union">
+		<param type="i"/>
+		<param type="c"/>
+		<param type="d"/>
+	</usertype>
+	<usertype id="4" type="struct">
+		<param type="2"/>
+		<param type="3"/>
+	</usertype>
     <function address="4781" name="overflow" ordinal="1">
     	<param type="i"/>
     	<param type="c"/>
