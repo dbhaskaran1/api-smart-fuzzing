@@ -3,7 +3,7 @@ Created on Nov 2, 2011
 
 @author: Rob
 '''
-import statusreporter
+import status_reporter
 
 class SectionReporter(object):
     '''
@@ -16,7 +16,7 @@ class SectionReporter(object):
         Constructor
         '''
         # A 100-event status bar
-        self.reporter = statusreporter.StatusReporter()
+        self.reporter = status_reporter.StatusReporter()
         self.numsections = numsections
         self.cursection = None
         self.cursectiontotal = None

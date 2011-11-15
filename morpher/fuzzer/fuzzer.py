@@ -6,9 +6,9 @@ Created on Oct 28, 2011
 import os
 import pickle
 import monitor
-import mutator
+import generator
 import logging
-from morpher.misc import sectionreporter
+from morpher.misc import section_reporter
 
 class Fuzzer(object):
     '''
@@ -22,7 +22,7 @@ class Fuzzer(object):
         self.cfg = cfg
         self.log = logging.getLogger(__name__)
         self.tracenum = 0
-        self.mutator = mutator.Mutator(self.cfg)
+        self.generator = generator.Generator(self.cfg)
         
     def fuzz(self):
         '''
@@ -53,11 +53,11 @@ class Fuzzer(object):
                 f = open(path)
                 trace = pickle.load(f)
                 f.close()
-                for mem in trace :
-                    numtags += len(mem.tags)
+                for snap in trace.snapshots :
+                    numtags += len(snap.tags)
                     
         self.log.info("Counted %s total fuzz targets across all traces", numtags)
-        sr = sectionreporter.SectionReporter(numtags)
+        sr = section_reporter.SectionReporter(numtags)
         sr.start("  Fuzzer is running...")
         tagnum = 1
         for tracefile in filelist :
@@ -71,24 +71,24 @@ class Fuzzer(object):
             self.monitor.setTraceNum(self.tracenum)
             self.tracenum += 1
             # Main fuzzing loop
-            for mem in trace :
+            for snap in trace.snapshots :
                 self.log.info("Fuzzing next memory image in trace")
-                for tag in mem.tags :
+                for tag in snap.tags :
                     self.log.info("Fuzzing next tag in memory image")
                     # Store original value for this tag
-                    (old,) = mem.read(tag.addr, fmt=tag.fmt)
-                    fuzzed_values = self.mutator.mutate(tag.fmt, old)
+                    (old,) = snap.mem.read(tag.addr, fmt=tag.fmt)
+                    fuzzed_values = self.generator.generate(tag.fmt, old)
                     # Fuzz this tag
                     sr.startSection(tagnum, len(fuzzed_values))
                     for v in fuzzed_values :
                         # Write the fuzzed value
-                        mem.write(tag.addr, (v,), fmt=tag.fmt)
+                        snap.mem.write(tag.addr, (v,), fmt=tag.fmt)
                         self.log.info("Sending new fuzzed trace to monitor")
                         self.monitor.run(trace)
                         sr.pulse()
                     # Restore tag value
                     self.log.info("Tag fuzzing complete, restoring value")
-                    mem.write(tag.addr, (old,), fmt=tag.fmt)
+                    snap.mem.write(tag.addr, (old,), fmt=tag.fmt)
                     sr.endSection()
                     tagnum += 1
                 self.log.info("Memory image fuzzing complete")

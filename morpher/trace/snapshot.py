@@ -6,6 +6,7 @@ Created on Nov 13, 2011
 import memory
 import struct
 import ctypes
+from morpher.trace import typemanager
 
 class Snapshot(object):
     '''
@@ -25,6 +26,8 @@ class Snapshot(object):
         self.ordinal = ordinal
         # Ordered list of argument tags
         self.args = []
+        # Type Manager
+        self.type_manager = None
 
     def setArgs(self, args):
         '''
@@ -61,7 +64,39 @@ class Snapshot(object):
         for tag in self.args :
             arg = self._loadObject(tag.addr, tag.fmt)
             arguments.append(arg)
+        self.type_manager = None
         return arguments
+    
+    def toString(self):
+        '''
+        '''
+        snapstr = "Snapshot Contents:\n"
+        snapstr += "Ordinal: %d\n" % self.ordinal
+        if len(self.args) == 0 :
+            snapstr += "Arguments not specified\n" 
+        else :
+            snapstr += "Argument Tags: "
+            for t in self.args : 
+                snapstr += "0x%x - %s   " % (t.addr, t.fmt)
+            snapstr += "\nArguments: "
+            self.type_manager = typemanager.TypeManager()
+            for t in self.args :
+                if not t.fmt.isdigit() :
+                    a = self._loadObject(t.addr, t.fmt)
+                    try :
+                        s = str(a)
+                        snapstr += s + " "
+                    except :
+                        snapstr += "(unprintable) "
+                else :
+                    snapstr += "UserType(%s) " % t.fmt
+            snapstr += "\n"
+            self.type_manager = None
+        snapstr += "Tags: "
+        for t in self.tags : 
+            snapstr += "0x%x - %s   " % (t.addr, t.fmt)
+        snapstr += "\n" + self.mem.toString()
+        return snapstr
         
     def _loadObject(self, addr, fmt, objclass=None):
         '''
@@ -70,19 +105,15 @@ class Snapshot(object):
         if objclass == None :
             objclass = self.type_manager.getClass(fmt)
         if issubclass(objclass, ctypes.Structure) :
-            curaddr = addr
+            offset = 0
             myinst = objclass()
             for (fieldname, fieldclass) in objclass._fields_ :
-                (size, alignment) = self.type_manager.getInfo(fieldclass)
-                curaddr = self.type_manager.align(curaddr, alignment)
-                if not issubclass(fieldclass, ctypes.Structure) and \
-                   not issubclass(fieldclass, ctypes.Union) :
-                    fieldfmt = self.type_manager.getFormat(fieldclass)
-                else :
-                    fieldfmt = None
-                obj = self._loadObject(curaddr, fieldfmt, fieldclass)
+                fieldfmt = self.type_manager.getFormat(fieldclass)
+                (size, alignment) = self.type_manager.getInfo(fieldfmt)
+                offset = self.type_manager.align(offset, alignment)
+                obj = self._loadObject(addr + offset, fieldfmt, fieldclass)
                 setattr(myinst, fieldname, obj)
-                curaddr += size
+                offset += size
             print fieldname
             print getattr(myinst, fieldname)
             return myinst

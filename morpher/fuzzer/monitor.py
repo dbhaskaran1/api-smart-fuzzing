@@ -99,14 +99,13 @@ class Monitor(object):
         t = threading.Timer(self.limit, self.timeout)
         
         if self.log.isEnabledFor(logging.DEBUG) :
-            self.log.debug("Trace %d run %d contents: ", self.tracenum, self.iter)
-            string = ""
-            for m in trace:
-                string += m.toString()
-            self.log.debug(string)
+            tracestr = trace.toString()
+            self.log.debug("Trace %d run %d contents:\n\n%s\n", \
+                           self.tracenum, self.iter, tracestr)
         
         # Send the trace
-        self.log.info("Sending trace %d run %d, releasing harness", self.tracenum, self.iter)
+        self.log.info("Sending trace %d run %d, releasing harness", \
+                      self.tracenum, self.iter)
         try :
             outpipe.send(trace)
         except :
@@ -138,22 +137,25 @@ class Monitor(object):
         '''
         if self.timed_out :
             # Reduce trace to only calls that were made before the hang
-            trace = []
-            for m in self.last_trace :
+            snaps = []
+            for s in self.last_trace.snapshots :
                 if self.inpipe.poll() and self.inpipe.recv() == True :
-                    trace.append(m)
+                    snaps.append(s)
                 else :
                     break
+
             # Dump  trace string to file
-            dumpfile = os.path.join(self.hangpath, "trace-%d-run-%d.txt" % (self.tracenum, self.iter))
+            filename = "trace-%d-run-%d.txt" % (self.tracenum, self.iter)
+            dumpfile = os.path.join(self.hangpath, filename)
             f = open(dumpfile, "w")
-            for m in trace :
-                f.write(m.toString())
+            for s in snaps :
+                f.write(s.toString() + "\n")
             f.close()
             # Dump the trace
-            dumpfile = os.path.join(self.hangpath, "trace-%d-run-%d.pkl" % (self.tracenum, self.iter))
+            filename = "trace-%d-run-%d.pkl" % (self.tracenum, self.iter)
+            dumpfile = os.path.join(self.hangpath, filename)
             f = open(dumpfile, "wb")
-            pickle.dump(trace, f)
+            pickle.dump(self.last_trace, f)
             f.close()
             # Terminate the process
             self.log.info("!!! Harness timed out !!!")
@@ -178,10 +180,10 @@ class Monitor(object):
             os.mkdir(dirpath)
             
         # Reduce trace to only calls that were made before the crash
-        trace = []
-        for m in self.last_trace :
+        snaps = []
+        for s in self.last_trace.snapshots :
             if self.inpipe.poll() and self.inpipe.recv() == True :
-                trace.append(m)
+                snaps.append(s)
             else :
                 break
         
@@ -191,14 +193,14 @@ class Monitor(object):
         f.write(crashstr)
         
         # Write out the trace information
-        for m in trace :
-            f.write(m.toString())
+        for s in snaps :
+            f.write(s.toString() + "\n")
         f.close()
         
         # Dump the trace in pickle format
         dumpfile = os.path.join(dirpath, "trace-%d-run-%d.pkl" % (self.tracenum, self.iter))
         f = open(dumpfile, "wb")
-        pickle.dump(trace, f)
+        pickle.dump(self.last_trace, f)
         f.close()
                 
         # Done reporting, terminate the harness

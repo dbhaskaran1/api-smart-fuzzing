@@ -7,7 +7,7 @@ import random
 import struct
 import logging
 
-class Mutator(object):
+class Generator(object):
     '''
     classdocs
     '''
@@ -40,7 +40,7 @@ class Mutator(object):
                             "P": self._getPointers
                            }
     
-    def mutate(self, fmt, orig):
+    def generate(self, fmt, orig):
         return self.generators[fmt](fmt, orig)
     
     def _getChars(self, fmt, orig):

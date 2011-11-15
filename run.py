@@ -18,7 +18,7 @@ def playback(filename):
     and step through the trace
     '''
     cfg = config.Config()
-    dlltype = cfg.get('fuzzer', 'dlltype')
+    dlltype = cfg.get('fuzzer', 'dll_type')
     path = cfg.get('fuzzer', 'target')
     
     print "Attach your debugger to PID %d" % os.getpid()
@@ -38,14 +38,14 @@ def playback(filename):
     f.close()
     
     # Run each function capture in order
-    for m in trace :
-        args = m.getArgs()
-        ordinal = m.ordinal
-        cmd = "m"
+    for s in trace.snapshots :
+        args = s.replay(trace.type_manager)
+        ordinal = s.ordinal
+        cmd = "s"
         while not cmd == "" :
-            cmd = raw_input("Calling function ordinal %d [Enter to continue, m to show memory]:" % ordinal)
-            if cmd == "m" :
-                print m.toString()
+            cmd = raw_input("Calling function ordinal %d [Enter to continue, s to show snapshot]:" % ordinal)
+            if cmd == "s" :
+                print s.toString()
             
         result = target[ordinal](*args)
         print "Function returned result: %s" % str(result)

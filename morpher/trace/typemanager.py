@@ -30,6 +30,7 @@ class TypeManager(object):
                     "d": ctypes.c_double,
                     "P": ctypes.c_void_p
                     }
+        self.infotable = {}
         self.usertypes = {}
         # Record enough data to reconstruct custom types
         # after being pickled and unpickled
@@ -117,10 +118,17 @@ class TypeManager(object):
             if value == objclass :
                 return key
             
-    def getInfo(self, objclass):
+    def getInfo(self, fmt):
         '''
         '''
-        return (ctypes.sizeof(objclass), ctypes.alignment(objclass))
+        if self.infotable.has_key(fmt) :
+            return self.infotable[fmt]
+        else :
+            objclass = self.getClass(fmt)
+            size = ctypes.sizeof(objclass)
+            align = ctypes.alignment(objclass)
+            self.infotable[fmt] = (size, align)
+            return (size, align)
     
     def align(self, address, alignment):
         '''

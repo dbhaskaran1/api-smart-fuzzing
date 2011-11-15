@@ -7,7 +7,7 @@ import xml.dom.minidom as xml
 import logging
 import os
 import dllexp
-from morpher.misc import statusreporter
+from morpher.misc import status_reporter
 
 class Parser(object):
     '''
@@ -40,7 +40,7 @@ class Parser(object):
             print "  Parser DISABLED\n"
             return
             
-        sr = statusreporter.StatusReporter(total=2)
+        sr = status_reporter.StatusReporter(total=2)
         sr.start("  Parser is running...")
         # Parsing is enabled
         self.log.info("Beginning parse routine")

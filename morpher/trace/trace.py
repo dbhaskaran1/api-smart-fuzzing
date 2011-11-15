@@ -10,16 +10,23 @@ class Trace(object):
     '''
 
 
-    def __init__(self, model, call_list):
+    def __init__(self, model, snapshots):
         '''
         Constructor
         '''
-        self.call_list = call_list
+        self.snapshots = snapshots
         self.type_manager = typemanager.TypeManager(model)
         
     def replay(self):
         '''
         '''
-        for call in self.call_list:
-            yield call.replay(self.type_manager)
-        
+        for s in self.snapshots:
+            yield (s.ordinal, s.replay(self.type_manager))
+            
+    def toString(self):
+        '''
+        '''
+        tracestr = "Trace contents:\n"
+        for s in self.snapshots :
+            tracestr += "\n" + s.toString() 
+        return tracestr

@@ -7,7 +7,7 @@ Created on Oct 26, 2011
 import range_union
 import logging
 import struct
-from morpher.misc import block, memory, tag
+from morpher.trace import snapshot, tag
 from morpher.pydbg import pdx
 
 class SnapshotManager(object):
@@ -84,18 +84,16 @@ class SnapshotManager(object):
                 # Bad pointers shouldn't have gotten to this point
                 self.log.error("Error trying to access memory for range %x to %x", r.low, r.high)
                 continue
-            b = block.Block(addr, data)
-            blist.append(b)
+            blist.append((addr, data))
         # Get function ordinal and arguments address
         self.log.debug("Setting ordinal to %d", self.ordinal)
         self.log.debug("Creating memory object")
-        # Create the Memory snapshot and populate it
-        m = memory.Memory(self.ordinal, blist)
-        m.setArgs(self.args)
+        # Create the Snapshot and populate it
+        s = snapshot.Snapshot(self.ordinal, blist)
+        s.setArgs(self.args)
         for t in self.tset :
-            m.addTag(t)     
+            s.addTag(t)     
         if self.log.isEnabledFor(logging.DEBUG):
-            self.log.debug("Returning memory object:")
-            self.log.debug(m.toString())
-        return m
+            self.log.debug("Returning memory object:\n\n%s\n", s.toString())
+        return s
 

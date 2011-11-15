@@ -8,7 +8,7 @@ import trace_recorder
 import os
 import pickle
 import logging
-from morpher.misc import statusreporter
+from morpher.misc import status_reporter
 
 class Collector(object):
     '''
@@ -81,7 +81,7 @@ class Collector(object):
         f.close()
         
         self.log.info("Beginning collection process")
-        sr = statusreporter.StatusReporter(total=len(lines))
+        sr = status_reporter.StatusReporter(total=len(lines))
         sr.start("  Collector is running...")
         self.counter = 0
         for line in lines :
@@ -91,17 +91,18 @@ class Collector(object):
                 self.log.warning("Couldn't parse collection line: %s", line)
                 continue
             trace = recorder.record(exe, args)
-            # Dump to a new tracefile
-            tracepath = os.path.join(self.tracedir, 'trace-%d.pkl' % self.counter)
-            try :
-                tracefile = open(tracepath, "wb")
-            except :
-                self.log.warning("Couldn't open file for storing trace: %s", tracepath)
-                continue
-            self.log.info("Creating trace file %s", tracepath)
-            pickle.dump(trace, tracefile)
-            tracefile.close()
-            self.counter += 1
+            if trace != None :
+                # Dump to a new tracefile
+                tracepath = os.path.join(self.tracedir, 'trace-%d.pkl' % self.counter)
+                try :
+                    tracefile = open(tracepath, "wb")
+                except :
+                    self.log.warning("Couldn't open file for storing trace: %s", tracepath)
+                    continue
+                self.log.info("Creating trace file %s", tracepath)
+                pickle.dump(trace, tracefile)
+                tracefile.close()
+                self.counter += 1
             sr.pulse()
         
         self.log.info("Collection process complete")

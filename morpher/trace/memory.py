@@ -4,6 +4,7 @@ Created on Oct 26, 2011
 @author: Rob
 '''
 import struct
+import block
 
 class Memory(object):
     '''
@@ -20,14 +21,13 @@ class Memory(object):
         '''
         # Dictionary of address -> char[] 
         self.mem = {}
+        # Populate the memory with blocks
+        for (addr, data) in blklist :
+            b = block.Block(addr, data)
+            self.mem[b.addr] = b
         # Set of addresses of pointers
         self.pointers = set()
         
-        for b in blklist :
-            if not b.active :
-                b.setActive(True)
-            self.mem[b.addr] = b
-            
     def __getstate__(self):
         '''
         Pickle calls this method when dumping. We turn off all the
@@ -130,7 +130,7 @@ class Memory(object):
         '''
         Report contents of memory
         '''
-        memstr = "\nContents of Memory:\n"
+        memstr = "Contents of Memory:\n"
         memstr += "Pointers: "
         for p in self.pointers : 
             memstr += "0x%x  " % (p)

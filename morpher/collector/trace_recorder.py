@@ -4,12 +4,11 @@ Created on Oct 28, 2011
 @author: Rob
 '''
 import os
-from morpher.collector import snapshot_manager
-from morpher.pydbg import pydbg, defines, pdx
-from morpher.misc import typeconvert
+from morpher.collector import func_recorder
+from morpher.pydbg import pydbg, defines
+from morpher.trace import trace
 import logging
-import struct
-import ctypes
+import threading
 
 class TraceRecorder(object):
     '''
@@ -30,10 +29,10 @@ class TraceRecorder(object):
         self.dllpath = self.cfg.get('fuzzer', 'target')
         # The trace
         self.trace = []
-        # Stack alignment
-        self.stack_align = self.cfg.getint('collector', 'stack_align')
-        # Stored info table for performance boost
-        self.info_table = {}
+        # The number of seconds until we declare a timeout
+        self.limit = cfg.getint('collector', 'timeout')
+        # Function recorder
+        self.func_recorder = func_recorder.FuncRecorder(cfg, model)
     
     def record(self, exe, arg):
         '''
@@ -48,14 +47,39 @@ class TraceRecorder(object):
         self.dbg = pydbg.pydbg()
         self.dbg.load(exe, command_line=arg, create_new_console=True, show_window=False)
         # Set breakpoints on functions
-        self.dbg.set_callback(defines.LOAD_DLL_DEBUG_EVENT, self.load_handler)
+        self.dbg.set_callback(defines.LOAD_DLL_DEBUG_EVENT, self.loadHandler)
+        self.dbg.set_callback(defines.USER_CALLBACK_DEBUG_EVENT, self.checkTimeout)
+          
+        self.timed_out = False
+        t = threading.Timer(self.limit, self.timeoutHandler)
           
         self.log.info("Running the program")
+        t.start()
         self.dbg.run()
+        t.cancel()
         
-        return self.trace
+        newtrace = trace.Trace(self.model, self.trace)
         
-    def load_handler(self,dbg):
+        return newtrace
+    
+    def checkTimeout(self, dbg):
+        '''
+        Checks for timeouts, in which case it logs the hang and terminates the process.
+        Set as handler for debugger's event loop (called at least every 100ms)
+        '''
+        if self.timed_out :
+            # Terminate the process
+            self.log.info("!!! Harness timed out !!!")
+            self.log.info("Terminating harness")
+            dbg.terminate_process() 
+    
+    def timeoutHandler(self):
+        '''
+        Sets the timed_out flag. Should call with a timer after (MAXTIME) seconds
+        '''
+        self.timed_out = True
+        
+    def loadHandler(self,dbg):
         '''
         Activated when the target library is loaded by the application - goes 
         through and sets hooks in each known function to call func_handler
@@ -71,179 +95,19 @@ class TraceRecorder(object):
                 address = dbg.func_resolve(self.dllpath, ordinal)
                 self.log.debug("Setting breakpoint: dll %s ordinal %d address %x", dllname, ordinal, address)
                 desc = str(ordinal)
-                dbg.bp_set(address, description=desc, handler=self.func_handler)
+                dbg.bp_set(address, description=desc, handler=self.funcHandler)
                 self.log.debug("Breakpoint set at address %x", address)
         
         return defines.DBG_CONTINUE 
         
-    def func_handler(self,dbg):
+    def funcHandler(self,dbg):
         '''
         Activated upon a function call. Determines which function was called
         and starts the snapshot process to capture the function arguments
         '''
         self.log.debug("Breakpoint tripped, address %x", dbg.context.Eip)
         ordinal = int(dbg.breakpoints[dbg.context.Eip].description)
-        startaddr = dbg.context.Esp + 0x4
-        # Figure out what function this is
-        for node in self.model.getElementsByTagName("function") :
-            if ordinal == int(node.getAttribute("ordinal")) :
-                func = node
-                break
-        print "Stopped at stack address %x"  % dbg.context.Esp
-        # Create the snapshot manager
-        self.sm = snapshot_manager.SnapshotManager(self.cfg, dbg, ordinal)
-        # Tag arguments
-        self.tagArgs(startaddr, func)
-        # Take the snapshot
-        self.trace.append(self.sm.snapshot())          
+        snap = self.func_recorder.record(dbg, ordinal)
+        self.trace.append(snap)          
         
         return defines.DBG_CONTINUE 
-    
-    def tagArgs(self, addr, funcnode):
-        '''
-        Given the starting address and function node, tag the arguments.
-        Note that we can't rely on arguments to be properly aligned - 
-        just aligned to the stack requirements.
-        '''
-        curaddr = addr
-        for param in funcnode.getElementsByTagName("param") :
-            paramtype = param.getAttribute("type")
-            (size, _) = self.getInfo(paramtype)
-            curaddr = self.align(curaddr, self.stack_align)
-            print "Calling tag on argument of type %s address %x" % (paramtype, curaddr)
-            self.tag(curaddr, paramtype)
-            print "adding arg tag of type %s address %x" % (paramtype[0], curaddr)
-            self.sm.addArg(curaddr, paramtype[0])
-            curaddr += size
-    
-    def tag(self, addr, paramtype):
-        '''
-        Given an address and a type. either basic (ex. "i") or user-defined (ex. "1"),
-        tag the object for collection and recursively tag any member objects or 
-        objects it points to
-        '''
-        print "tag called with addr %x type %s" % (addr, paramtype)
-        # Check the node type
-        if paramtype.isdigit() :
-            # This is a user-defined type - get definition node
-            for typenode in self.model.getElementsByTagName("usertype"):
-                if int(typenode.getAttribute("id")) == int(paramtype) :
-                    usernode = typenode
-                    break
-            # Check if this is a struct or union type
-            if usernode.getAttribute("type") == "struct" :
-                # Struct type. Use alignment on offset, not address - we know
-                # structure will be internally aligned, but can't guarantee
-                # it's stack address is aligned properly
-                offset = 0
-                for childnode in usernode.getElementsByTagName("param") :
-                    childtype = childnode.getAttribute("type")
-                    (size, alignment) = self.getInfo(childtype)
-                    offset = self.align(offset, alignment)
-                    self.tag(addr + offset, childtype)
-                    offset += size
-            else :
-                # Union type - tag all elements with same address
-                for childnode in usernode.getElementsByTagName("param") :
-                    self.tag(addr, childnode.getAttribute("type"))
-                
-        else :
-            # This is a basic type - add it if tag does not already exist
-            basictype = paramtype[0]
-            print "basictype = %s" % basictype
-            if not self.sm.checkObject(addr, basictype) :
-                self.sm.addObjects(addr, basictype)
-            # If it's a pointer follow it even if it's already been added -
-            # the type it points to could be different. Don't follow if
-            # its just "P" (a void * pointer)
-            print "len of type %d" % len(paramtype)
-            if paramtype[0] == "P" and len(paramtype) > 1:
-                print "Recursing"
-                # Get the pointer's type (everything after the first P)
-                ptype = paramtype[1:]
-                # Read the pointer's value (address of object)
-                try :
-                    size = struct.calcsize("P")
-                    raw = self.dbg.read_process_memory(addr, size)
-                    paddr = struct.unpack("P", raw)[0]
-                except pdx.pdx :
-                    # Shouldn't have gotten here, someone gave bad argument
-                    # This is a bad object, not in valid memory
-                    # We'll discard it during the snapshot
-                    return
-                # Check if this paddr is to valid user memory
-                (size, _) = self.getInfo(ptype)
-                try : 
-                    self.dbg.read_process_memory(paddr, size)
-                except pdx.pdx :
-                    print "can't collect: paddr = %x" % (paddr)
-                    return
-                # Tag the pointed-to object
-                self.tag(paddr, ptype)
-    
-    def getInfo(self, paramtype):
-        '''
-        Given a fundamental type (ex. "P") or user type (ex. "1"), returns a tuple consisting
-        of the (size, alignment) of that type
-        '''
-        
-        if paramtype.isdigit() :
-            # Check our stored table
-            if self.info_table.has_key(paramtype) :
-                return self.info_table[paramtype]
-            # This is a structure or union - get the corresponding node
-            for typenode in self.model.getElementsByTagName("usertype"):
-                if int(typenode.getAttribute("id")) == int(paramtype) :
-                    usernode = typenode
-                    break
-            if usernode.getAttribute("type") == "struct" :
-                # Structs have the same alignment as the largest member alignment.
-                # Members are padded so they are at the correct alignments as well
-                # Struct end is padded so it falls on the same alignment as struct
-                maxalign = 1
-                offset = 0
-                for child in usernode.getElementsByTagName("param") :
-                    (size, alignment) = self.getInfo(child.getAttribute("type"))
-                    if alignment > maxalign :
-                        maxalign = alignment
-                    # Insert padding to achieve member alignment
-                    offset = self.align(offset, alignment)
-                    # Add actual size of member
-                    offset += size;
-                # Insert end padding to match structure alignment 
-                offset = self.align(offset, maxalign)
-                # store the result for future reference
-                self.info_table[paramtype] = (offset, maxalign)
-                return (offset, maxalign)
-            else :
-                # Unions have size equal to the size of their largest member, 
-                # and alignment equal to the largest member alignment
-                maxalign = 1
-                maxsize = 1
-                for child in usernode.getElementsByTagName("param") :
-                    (size, alignment) = self.getInfo(child.getAttribute("type"))
-                    if alignment > maxalign :
-                        maxalign = alignment
-                    if size > maxsize :
-                        maxsize = size
-                # store the result for future reference
-                self.info_table[paramtype] = (maxsize, maxalign)
-                return (maxsize, maxalign)
-        else :
-            # This is a standard type. Alignment is equal to type's size
-            # Check our stored table
-            if self.info_table.has_key(paramtype[0]) :
-                return self.info_table[paramtype[0]]
-            size = struct.calcsize(paramtype[0])
-            alignment = ctypes.alignment(typeconvert.fmt2ctype[paramtype[0]])
-            # store the result for future reference
-            self.info_table[paramtype[0]] = (size, alignment)
-            return (size, alignment)
-        
-    def align(self, address, alignment):
-        '''
-        Utility function to align an address by adding padding
-        '''
-        leftover = (address % alignment)
-        padding = (alignment - leftover) % alignment
-        return address + padding
