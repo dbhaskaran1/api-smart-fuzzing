@@ -1,0 +1,24 @@
+\BOOKMARK [1][-]{section*.1}{Contents}{}% 1
+\BOOKMARK [1][-]{section.1}{Package morpher.misc}{}% 2
+\BOOKMARK [2][-]{subsection.1.1}{Modules}{section.1}% 3
+\BOOKMARK [1][-]{section.2}{Module morpher.misc.config}{}% 4
+\BOOKMARK [2][-]{subsection.2.1}{Variables}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.2}{Class Config}{section.2}% 6
+\BOOKMARK [3][-]{subsubsection.2.2.1}{Methods}{subsection.2.2}% 7
+\BOOKMARK [3][-]{subsubsection.2.2.2}{Class Variables}{subsection.2.2}% 8
+\BOOKMARK [1][-]{section.3}{Module morpher.misc.log\137setup}{}% 9
+\BOOKMARK [2][-]{subsection.3.1}{Functions}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.2}{Variables}{section.3}% 11
+\BOOKMARK [1][-]{section.4}{Module morpher.misc.section\137reporter}{}% 12
+\BOOKMARK [2][-]{subsection.4.1}{Variables}{section.4}% 13
+\BOOKMARK [2][-]{subsection.4.2}{Class SectionReporter}{section.4}% 14
+\BOOKMARK [3][-]{subsubsection.4.2.1}{Methods}{subsection.4.2}% 15
+\BOOKMARK [3][-]{subsubsection.4.2.2}{Properties}{subsection.4.2}% 16
+\BOOKMARK [3][-]{subsubsection.4.2.3}{Instance Variables}{subsection.4.2}% 17
+\BOOKMARK [1][-]{section.5}{Module morpher.misc.status\137reporter}{}% 18
+\BOOKMARK [2][-]{subsection.5.1}{Variables}{section.5}% 19
+\BOOKMARK [2][-]{subsection.5.2}{Class StatusReporter}{section.5}% 20
+\BOOKMARK [3][-]{subsubsection.5.2.1}{Methods}{subsection.5.2}% 21
+\BOOKMARK [3][-]{subsubsection.5.2.2}{Properties}{subsection.5.2}% 22
+\BOOKMARK [3][-]{subsubsection.5.2.3}{Instance Variables}{subsection.5.2}% 23
+\BOOKMARK [1][-]{section*.2}{Index}{}% 24

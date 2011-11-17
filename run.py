@@ -39,14 +39,18 @@ def playback(filename):
     
     # Run each function capture in order
     for s in trace.snapshots :
-        args = s.replay(trace.type_manager)
         ordinal = s.ordinal
         cmd = "s"
         while not cmd == "" :
-            cmd = raw_input("Calling function ordinal %d [Enter to continue, s to show snapshot]:" % ordinal)
+            print "Calling function ordinal %d" % ordinal
+            cmd = raw_input("[Enter to continue, s to show snapshot, q to quit]:")
             if cmd == "s" :
                 print s.toString()
-            
+            elif cmd == "q" :
+                print "Quitting..."
+                return
+                
+        args = s.replay(trace.type_manager)
         result = target[ordinal](*args)
         print "Function returned result: %s" % str(result)
         

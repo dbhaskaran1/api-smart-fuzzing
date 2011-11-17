@@ -1,1 +1,5 @@
-C:\Users\Rob\workspace\ApiFuzzing\junk\TestCrash.exe 3 A
+C:\Users\Rob\workspace\ApiFuzzing\junk\TestApp.exe 0
+C:\Users\Rob\workspace\ApiFuzzing\junk\TestApp.exe 1
+C:\Users\Rob\workspace\ApiFuzzing\junk\TestApp.exe 2
+C:\Users\Rob\workspace\ApiFuzzing\junk\TestApp.exe 3
+C:\Users\Rob\workspace\ApiFuzzing\junk\TestApp.exe 4

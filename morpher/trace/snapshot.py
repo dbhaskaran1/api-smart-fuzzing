@@ -123,15 +123,15 @@ class Snapshot(object):
             maxsize = 0
             maxfieldname = None
             maxfieldclass = None
+            maxfieldfmt = None
             for (fieldname, fieldclass) in objclass._fields_ :
-                (size, _) = self.type_manager.getInfo(fieldclass)
+                fieldfmt = self.type_manager.getFormat(fieldclass)
+                (size, _) = self.type_manager.getInfo(fieldfmt)
                 if size > maxsize :
                     maxsize = size
                     maxfieldname = fieldname
                     maxfieldclass = fieldclass
-            if not issubclass(maxfieldclass, ctypes.Structure) and \
-               not issubclass(maxfieldclass, ctypes.Union) :
-                maxfieldfmt = self.type_manager.getFormat(maxfieldclass)
+                    maxfieldfmt = fieldfmt
             obj = self._loadObject(addr, maxfieldfmt, maxfieldclass)
             setattr(myinst, maxfieldname, obj)
             return myinst

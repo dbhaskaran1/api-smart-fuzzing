@@ -6,7 +6,6 @@ Created on Oct 26, 2011
 
 import range_union
 import logging
-import struct
 from morpher.trace import snapshot, tag
 from morpher.pydbg import pdx
 
@@ -40,29 +39,25 @@ class SnapshotManager(object):
         '''
         Add a tag (start, fmt) to our list of argument tags
         '''
-        self.args.append(tag.Tag(start, fmt))
+        self.args.append(tag.Tag(start, str(fmt)))
         
     def checkObject(self, start, fmt):
         '''
         Returns True if the tag (start, fmt) is already in the manager
         '''
-        return tag.Tag(start, fmt) in self.tset
+        return tag.Tag(start, str(fmt)) in self.tset
         
-    def addObjects(self, start, fmt):
+    def addObject(self, start, size, fmt):
         '''
         Adds the memory range from start to start + (size of fmt) -1 to the list
-        of areas we need to record for the snapshot and adds a tag for each object
+        of areas we need to record for the snapshot and adds a tag for the object
         '''
-        curaddr = start
-        for c in fmt :
-            # Create the tag
-            t = tag.Tag(curaddr, c)
-            self.tset.add(t)
-            curaddr += struct.calcsize(c)
+        # Create and add the tag
+        t = tag.Tag(start, str(fmt))
+        self.tset.add(t)
         # Create the range to record
-        size = struct.calcsize(fmt)
         r = self.ru.Range(start, start + size - 1)
-        self.log.debug("Adding objects type %s, total range from %x to %x to recorder", fmt, r.low, r.high)
+        self.log.debug("Adding objects type %s, total range from %x to %x to recorder", str(fmt), r.low, r.high)
         self.ru.add(r)
         self.log.debug("%s", str(self.ru.rlist))
         
@@ -92,7 +87,8 @@ class SnapshotManager(object):
         s = snapshot.Snapshot(self.ordinal, blist)
         s.setArgs(self.args)
         for t in self.tset :
-            s.addTag(t)     
+            if not t.fmt.isdigit() :
+                s.addTag(t)     
         if self.log.isEnabledFor(logging.DEBUG):
             self.log.debug("Returning memory object:\n\n%s\n", s.toString())
         return s

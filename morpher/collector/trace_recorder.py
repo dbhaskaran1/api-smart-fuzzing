@@ -58,8 +58,11 @@ class TraceRecorder(object):
         self.dbg.run()
         t.cancel()
         
-        newtrace = trace.Trace(self.model, self.trace)
-        
+        if not len(self.trace) == 0 :
+            newtrace = trace.Trace(self.model, self.trace)
+        else :
+            newtrace = None
+            
         return newtrace
     
     def checkTimeout(self, dbg):

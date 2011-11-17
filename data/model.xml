@@ -1,30 +1,84 @@
 <dll>
 	<usertype id="1" type="struct">
-		<param type="i"/>
-		<param type="PPi"/>
-		<param type="Pl"/>
-	</usertype>
-	<usertype id="2" type="struct">
 		<param type="c"/>
 		<param type="h"/>
 		<param type="d"/>
 		<param type="c"/>
 	</usertype>
-	<usertype id="3" type="union">
-		<param type="i"/>
+	<usertype id="2" type="union">
 		<param type="c"/>
+		<param type="h"/>
 		<param type="d"/>
+		<param type="c"/>
 	</usertype>
-	<usertype id="4" type="struct">
+	<usertype id="3" type="struct">
+		<param type="1"/>
+		<param type="c"/>
 		<param type="2"/>
-		<param type="3"/>
 	</usertype>
-    <function address="4781" name="overflow" ordinal="1">
+	<usertype id="4" type="union">
+		<param type="1"/>
+		<param type="c"/>
+		<param type="2"/>
+	</usertype>
+	<usertype id="5" type="struct">
+		<param type="PPI"/>
+		<param type="P6"/>
+	</usertype>
+	<usertype id="6" type="struct">
+		<param type="Pi"/>
+		<param type="P5"/>
+	</usertype>
+	<usertype id="7" type="struct">
+		<param type="i"/>
+		<param type="P7"/>
+		<param type="P7"/>
+		<param type="P"/>
+	</usertype>
+	
+	<function name="write" ordinal="12">
+    	<param type="Pl"/>
+    	<param type="l"/>
+    </function>
+    <function name="overflow" ordinal="1">
     	<param type="i"/>
     	<param type="c"/>
     </function>
-    <function address="4734" name="write" ordinal="2">
+    <function name="testone" ordinal="6">
+    	<param type="c"/>
+    	<param type="1"/>
+    	<param type="2"/>
+    </function>
+    <function name="testtwo" ordinal="11">
+    	<param type="3"/>
+    	<param type="4"/>
+    </function>
+    <function name="testthree" ordinal="10">
     	<param type="Pl"/>
-    	<param type="l"/>
+    	<param type="Pl"/>
+    </function>
+    <function name="testfour" ordinal="4">
+    	<param type="Pl"/>
+    	<param type="PH"/>
+    </function>
+    <function name="testfive" ordinal="3">
+    	<param type="PPPl"/>
+    	<param type="PPH"/>
+    </function>
+    <function name="testsix" ordinal="8">
+    	<param type="P1"/>
+    	<param type="P1"/>
+    </function>
+    <function name="testseven" ordinal="7">
+    	<param type="P1"/>
+    	<param type="P2"/>
+    </function>
+    <function name="testeight" ordinal="2">
+    	<param type="5"/>
+    </function>
+    <function name="testnine" ordinal="5">
+    	<param type="P7"/>
+    </function>
+    <function name="testten" ordinal="9">
     </function>
 </dll>

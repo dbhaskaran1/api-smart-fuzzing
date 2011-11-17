@@ -66,8 +66,12 @@ class FuncRecorder(object):
             curaddr = self.type_manager.align(curaddr, self.stack_align)
             print "Calling tag on argument of type %s address %x" % (paramtype, curaddr)
             self.tag(curaddr, paramtype)
-            print "adding arg tag of type %s address %x" % (paramtype[0], curaddr)
-            self.sm.addArg(curaddr, paramtype[0])
+            if paramtype.isdigit() :
+                print "adding arg tag of type %s address %x" % (paramtype, curaddr)
+                self.sm.addArg(curaddr, paramtype)
+            else :
+                print "adding arg tag of type %s address %x" % (paramtype[0], curaddr)
+                self.sm.addArg(curaddr, paramtype[0])
             curaddr += size
     
     def tag(self, addr, paramtype):
@@ -79,34 +83,38 @@ class FuncRecorder(object):
         print "tag called with addr %x type %s" % (addr, paramtype)
         # Check the node type
         if paramtype.isdigit() :
-            # This is a user-defined type - get definition node
-            for typenode in self.model.getElementsByTagName("usertype"):
-                if int(typenode.getAttribute("id")) == int(paramtype) :
-                    usernode = typenode
-                    break
-            # Check if this is a struct or union type
-            if usernode.getAttribute("type") == "struct" :
-                # Struct type. Use alignment on offset, not address - we know
-                # structure will be internally aligned, but can't guarantee
-                # it's stack address is aligned properly
-                offset = 0
-                for childnode in usernode.getElementsByTagName("param") :
-                    childtype = childnode.getAttribute("type")
-                    (size, alignment) = self.type_manager.getInfo(childtype)
-                    offset = self.type_manager.align(offset, alignment)
-                    self.tag(addr + offset, childtype)
-                    offset += size
-            else :
-                # Union type - tag all elements with same address
-                for childnode in usernode.getElementsByTagName("param") :
-                    self.tag(addr, childnode.getAttribute("type"))
+            if not self.sm.checkObject(addr, paramtype) :
+                (size, _) = self.type_manager.getInfo(paramtype)
+                self.sm.addObject(addr, size, paramtype)
+                # This is a user-defined type - get definition node
+                for typenode in self.model.getElementsByTagName("usertype"):
+                    if int(typenode.getAttribute("id")) == int(paramtype) :
+                        usernode = typenode
+                        break
+                # Check if this is a struct or union type
+                if usernode.getAttribute("type") == "struct" :
+                    # Struct type. Use alignment on offset, not address - we know
+                    # structure will be internally aligned, but can't guarantee
+                    # it's stack address is aligned properly
+                    offset = 0
+                    for childnode in usernode.getElementsByTagName("param") :
+                        childtype = childnode.getAttribute("type")
+                        (size, alignment) = self.type_manager.getInfo(childtype)
+                        offset = self.type_manager.align(offset, alignment)
+                        self.tag(addr + offset, childtype)
+                        offset += size
+                else :
+                    # Union type - tag all elements with same address
+                    for childnode in usernode.getElementsByTagName("param") :
+                        self.tag(addr, childnode.getAttribute("type"))
                 
         else :
             # This is a basic type - add it if tag does not already exist
             basictype = paramtype[0]
             print "basictype = %s" % basictype
             if not self.sm.checkObject(addr, basictype) :
-                self.sm.addObjects(addr, basictype)
+                (size, _) = self.type_manager.getInfo(basictype)
+                self.sm.addObject(addr, size, basictype)
             # If it's a pointer follow it even if it's already been added -
             # the type it points to could be different. Don't follow if
             # its just "P" (a void * pointer)
