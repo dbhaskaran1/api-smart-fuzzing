@@ -9,7 +9,7 @@ progress updates
 '''
 import status_reporter
 
-class SectionReporter(object):
+class SectionReporter(status_reporter.StatusReporter):
     '''
     Extends L{StatusReporter} with additional functionality for 
     multi-part status bars
@@ -42,8 +42,6 @@ class SectionReporter(object):
               the console in dynamic update mode and will not display
               correctly otherwise
     
-    @ivar reporter: The encapsulated L{StatusReporter} object used to print
-                    the status bar itself.
     @ivar numsections: The total number of sections making up the status bar
     @ivar cursection: The current section index, starting from 1
     @ivar curtotal: The total number of events tracked by the current section
@@ -57,14 +55,13 @@ class SectionReporter(object):
 
     def __init__(self, numsections):
         '''
-        Initializes a new object wrapping an underlying L{StatusReporter} 
+        Initializes a new object with the underlying L{StatusReporter} 
         object using default settings
         
         @param numsections: The total number of sections tracked by the status bar
         @type numsections: integer
         '''
-        # A 100-event status bar
-        self.reporter = status_reporter.StatusReporter()
+        status_reporter.StatusReporter.__init__(self)
         # The total number of sections
         self.numsections = numsections
         # The index of the current section, starting at 1
@@ -73,19 +70,6 @@ class SectionReporter(object):
         self.curtotal = None
         # The current number of completed events, across all sections
         self.curevents = None
-        
-    def start(self, msg="  Status:"):
-        '''
-        Resets the internal counters, prints a message, and prints the 
-        empty status bar. 
-                  
-        @note: The elapsed time is calculated from the last time this method
-               was called for this object
-        @param msg: The message to print just above the status bar, default
-                    is "Status:"
-        @type msg: string
-        '''
-        self.reporter.start(msg=msg)
         
     def startSection(self, section, numevents):
         '''
@@ -124,7 +108,7 @@ class SectionReporter(object):
         maxpercent = (self.cursection*100)/self.numsections
         if percent >= maxpercent :
             percent = maxpercent
-        self.reporter.correct(percent)
+        self.correct(percent)
         
     def endSection(self):
         '''
@@ -132,7 +116,7 @@ class SectionReporter(object):
         exactly M{(cursection/numsections)*100} percent completion 
         '''
         if self.cursection == self.numsections :
-            self.reporter.done()
+            self.done()
         else :
             percent = (self.cursection*100)/self.numsections
-            self.reporter.correct(percent)
+            self.correct(percent)

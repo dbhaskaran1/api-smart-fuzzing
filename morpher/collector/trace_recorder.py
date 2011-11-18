@@ -59,7 +59,15 @@ class TraceRecorder(object):
         t.cancel()
         
         if not len(self.trace) == 0 :
-            newtrace = trace.Trace(self.model, self.trace)
+            usertypes = {}
+            for usernode in self.model.getElementsByTagName("usertype"):
+                userid = usernode.getAttribute("id")
+                usertype = usernode.getAttribute("type")
+                userparams = []
+                for childnode in usernode.getElementsByTagName("param") :
+                    userparams.append(childnode.getAttribute("type"))
+                usertypes[userid] = (usertype, userparams)
+            newtrace = trace.Trace(usertypes, self.trace)
         else :
             newtrace = None
             

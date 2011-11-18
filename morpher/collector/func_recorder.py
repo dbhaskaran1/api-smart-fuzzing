@@ -27,7 +27,17 @@ class FuncRecorder(object):
         # Stack alignment
         self.stack_align = self.cfg.getint('collector', 'stack_align')
         # Type interpreter
-        self.type_manager = typemanager.TypeManager(model)
+        
+        usertypes = {}
+        for usernode in model.getElementsByTagName("usertype"):
+            userid = usernode.getAttribute("id")
+            usertype = usernode.getAttribute("type")
+            userparams = []
+            for childnode in usernode.getElementsByTagName("param") :
+                userparams.append(childnode.getAttribute("type"))
+            usertypes[userid] = (usertype, userparams)
+            
+        self.type_manager = typemanager.TypeManager(usertypes)
         # Debugger
         self.dbg = None
     
