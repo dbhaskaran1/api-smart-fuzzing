@@ -1,7 +1,10 @@
 '''
-Created on Oct 26, 2011
+Contains the L{SnapshotManager} class for creating a L{Snapshot}
 
-@author: Rob
+@author: Rob Waaser
+@contact: robwaaser@gmail.com
+@organization: Carnegie Mellon University
+@since: October 26, 2011
 '''
 
 import range_union

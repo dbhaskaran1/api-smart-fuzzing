@@ -24,9 +24,9 @@
 
 import os.path
 
-from pydbg     import *
-from defines   import *
-from my_ctypes import *
+from morpher.pydbg.pydbg     import *
+from morpher.pydbg.defines   import *
+from morpher.pydbg.my_ctypes import *
 
 # macos compatability.
 try:
@@ -49,8 +49,8 @@ class inject:
         '''
         Inject a DLL of your choice into a running process.
 
-        @type    dll_name: String
-        @param   dll_name: The path to the DLL you wish to inject
+        @type    dll_path: String
+        @param   dll_path: The path to the DLL you wish to inject
         @type    pid:      Integer
         @param   pid:      The process ID that you wish to inject into
 

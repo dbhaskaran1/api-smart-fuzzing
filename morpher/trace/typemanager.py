@@ -172,8 +172,8 @@ class TypeManager(object):
         Takes a format string and returns a (size, alignment) tuple describing
         the size and alignment of the corresponding C type
         
-        @param mytype: The format string to translate to a class
-        @type mytype: string
+        @param fmt: The format string to translate to a class
+        @type fmt: string
         
         @return: A tuple containing the (size, alignment) of the C type
         @rtype: (integer, integer) tuple

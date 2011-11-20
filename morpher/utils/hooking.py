@@ -22,7 +22,7 @@
 @organization: www.openrce.org
 '''
 
-from defines import *
+from morpher.pydbg.defines import *
 
 ########################################################################################################################
 class hook_container:

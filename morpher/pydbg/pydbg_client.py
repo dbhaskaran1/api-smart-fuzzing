@@ -153,10 +153,10 @@ class pydbg_client:
 
         @type  method_name: String
         @param method_name: The name of the requested and undefined attribute (or method in our case).
-        @type  *args:       Tuple
-        @param *args:       Tuple of arguments.
-        @type  **kwargs     Dictionary
-        @param **kwargs:    Dictioanry of arguments.
+        @type  args:       Tuple
+        @param args:       Tuple of arguments.
+        @type  kwargs     Dictionary
+        @param kwargs:    Dictioanry of arguments.
 
         @rtype:  Mixed
         @return: Return value of the mirrored method.

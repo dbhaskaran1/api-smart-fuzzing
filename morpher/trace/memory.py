@@ -60,7 +60,7 @@ class Memory(object):
         '''
         L{pickle} calls this method when dumping. Turns off all the
         blocks so they can be pickled, then returns this object's
-         __dict__ attribute for serialization. 
+        __dict__ attribute for serialization. 
          
         @note: The blocks will automatically re-activate themselves 
                individually when an operation is performed on them - 

@@ -1,8 +1,13 @@
 '''
-Created on Oct 28, 2011
+Contains the L{TraceRecorder} class for creating a L{Trace} by 
+observing a program using a DLL
 
-@author: Rob
+@author: Rob Waaser
+@contact: robwaaser@gmail.com
+@organization: Carnegie Mellon University
+@since: October 28, 2011
 '''
+
 import os
 from morpher.collector import func_recorder
 from morpher.pydbg import pydbg, defines
@@ -67,7 +72,7 @@ class TraceRecorder(object):
                 for childnode in usernode.getElementsByTagName("param") :
                     userparams.append(childnode.getAttribute("type"))
                 usertypes[userid] = (usertype, userparams)
-            newtrace = trace.Trace(usertypes, self.trace)
+            newtrace = trace.Trace(self.trace, usertypes)
         else :
             newtrace = None
             
@@ -121,4 +126,4 @@ class TraceRecorder(object):
         snap = self.func_recorder.record(dbg, ordinal)
         self.trace.append(snap)          
         
-        return defines.DBG_CONTINUE 
+        return defines.DBG_CONTINUE

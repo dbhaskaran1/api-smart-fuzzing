@@ -1,8 +1,12 @@
 '''
-Created on Oct 26, 2011
+Contains the L{RangeUnion} class for maintaining a "covering" set of ranges
 
-@author: Rob
+@author: Rob Waaser
+@contact: robwaaser@gmail.com
+@organization: Carnegie Mellon University
+@since: October 26, 2011
 '''
+
 from collections import namedtuple
 from collections import deque
 
@@ -13,7 +17,7 @@ class RangeUnion(object):
     in sorted order, and maximal (two consecutive ranges that together
     cover a single unbroken sequence of integers will be merged to one)
     '''
-    # Our Range type, as a tuple of the high and low number
+    # Our Range type, a tuple of the high and low number
     Range = namedtuple('Range', ['low', 'high'])
     
     def __init__(self, startlist=None):

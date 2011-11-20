@@ -21,18 +21,18 @@ class Trace(object):
            restored without any noticeable problems  
     '''
 
-    def __init__(self, usertypes={}, snapshots):
+    def __init__(self, snapshots, usertypes={}):
         '''
         Uses the supplied usertypes information to create a L{TypeManager}
         object and stores it along with the ordered list of L{Snapshot} objects.
         
-        @param usertypes: Optional dictionary mapping format strings to pairs
-                          of type strings and lists of fields' formats
-        @type usertypes: dictionary of string : (string, string list) pairs
-        
         @param snapshots: A list of L{Snapshot} objects in the order they 
                           were captured
         @type snapshots: L{Snapshot} object list
+        
+        @param usertypes: Optional dictionary mapping format strings to pairs
+                          of type strings and lists of fields' formats
+        @type usertypes: dictionary of string : (string, string list) pairs
         '''
         self.snapshots = snapshots
         

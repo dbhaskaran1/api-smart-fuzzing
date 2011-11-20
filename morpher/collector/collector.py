@@ -1,8 +1,13 @@
 '''
-Created on Oct 23, 2011
+Contains the L{Collector} class for recording DLL function calls by a 
+list of programs.
 
-@author: Rob
+@author: Rob Waaser
+@contact: robwaaser@gmail.com
+@organization: Carnegie Mellon University
+@since: October 23, 2011
 '''
+
 import xml.dom.minidom as xml
 import trace_recorder
 import os

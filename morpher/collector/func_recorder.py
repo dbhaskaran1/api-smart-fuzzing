@@ -1,8 +1,13 @@
 '''
-Created on Nov 14, 2011
+Contains the L{FuncRecorder} class for recording a L{Snapshot} 
+of a function call
 
-@author: Rob
+@author: Rob Waaser
+@contact: robwaaser@gmail.com
+@organization: Carnegie Mellon University
+@since: November 14, 2011
 '''
+
 import logging
 import struct
 import snapshot_manager

@@ -2351,7 +2351,7 @@ class pydbg:
         Utility function to flip the endianess a given DWORD into raw bytes.
 
         @type  dword: DWORD
-        @param dowrd: DWORD whose endianess to flip
+        @param dword: DWORD whose endianess to flip
 
         @rtype:  Raw Bytes
         @return: Converted DWORD in raw bytes.

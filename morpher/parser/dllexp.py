@@ -64,5 +64,5 @@ class DllExp(object):
         
         self.log.info("Found %d exported function entries", len(l))
         self.log.debug("Extracted entries: %s", str(l))
-            
-        return l  
+        
+        return l
