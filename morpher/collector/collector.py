@@ -18,10 +18,21 @@ from morpher.misc import status_reporter
 class Collector(object):
     '''
     Class documentation
+    
+    @ivar cfg: The L{Config} object
+    @ivar log: The L{logging} object
+    @ivar model: The XML root L{Node} for the DLL model 
+    @ivar counter: The number of traces recorded so far
+    @ivar tracedir: The path to the directory to store L{Trace} files in
+    @ivar modelpath: The path to the XML model file
     '''
 
     def __init__(self, cfg):
         '''
+        Stores the configuration object and initializes the internal data
+        
+        @param cfg: The configuration object to use
+        @type cfg: L{Config} object
         '''
         # The Config object used for configuration info
         self.cfg = cfg
@@ -38,7 +49,17 @@ class Collector(object):
     
     def collect(self):
         '''
-        Top-level collection routine
+        The top-level collection routine.
+        
+        If collection is disabled according to the configuration object,
+        a message saying so is printed to the console and the method exits.
+        Otherwise the directory for storing traces ("data\traces") is cleared
+        out and the specified list file and model file are read from the
+        filesystem. The collector reads in each line of the listfile,
+        parses it, then uses a L{TraceRecorder} object to launch the 
+        specified program and create a L{Trace} object with the contents
+        of the function calls executed by that program.Each L{Trace} is
+        pickled and stored to the trace directory.
         '''
         # Check if collecting is enabled
         if not self.cfg.getboolean('collector', 'enabled') : 
@@ -114,8 +135,22 @@ class Collector(object):
       
     def parseline(self,line):
         '''
-        Given a command line string, returns a pair of strings (pathtoexe, args)
-        Returns (none, none) if the line couldn't be parsed
+        Given a command line string, returns a pair of strings (path, args)
+        where path is a path to a valid file and args is the rest of the string.
+        
+        Takes a line such as "C:\Program Files\Test\test.exe -v -f myfile"
+        and tries to parse it into a tuple consisting of the file being
+        executed and the arguments - in this case the correct return value
+        would be ("C:\Program Files\Test\test.exe", "-v -f myfile"). The 
+        parsing is performed by tokenizing the string using whitespace, 
+        then concatenating each token to the beginning token and testing the 
+        result to see if it is a path to a valid file.
+        
+        @param line: The string to parse
+        @type line: string
+        
+        @return: (pathtoexe, args) or (None, None) if line couldn't be parsed
+        @rtype: (string, string) pair
         '''
         strings = line.split()
         # Keep adding tokens until we have a string that is an actual path

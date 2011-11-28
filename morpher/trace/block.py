@@ -19,7 +19,7 @@ class Block(object):
     with the "virtual address" that the memory block starts at. Reads and
     writes use these virtual addresses and the L{struct} module to access
     the contents of the byte string. The class is maintained in such a 
-    way that it can be serialized and deserialized using the L{pickle}
+    way that it can be serialized and deserialized using the I{pickle}
     module, and provides a L{translate} method that can take a virtual
     address and return the actual address the bytestring currently occupies.
     

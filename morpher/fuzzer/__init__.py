@@ -1,6 +1,8 @@
 '''
 Contains the modules used for Morpher's fuzzing phase.
 
+G{packagetree}
+
 The overall purpose of these modules is to take the L{Trace} files generated
 by the collection phase, modify the recorded values in the traces according to
 their types, then replay those function calls in a new process and monitor the
@@ -11,7 +13,7 @@ can be reproduced as needed.
 @author: Rob Waaser
 @contact: robwaaser@gmail.com
 @organization: Carnegie Mellon University
-@since: November 13, 2011
+@since: October 22, 2011
 '''
 
 __all__ = \

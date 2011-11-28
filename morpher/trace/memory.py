@@ -1,5 +1,5 @@
 '''
-Contains the L{Memory} class for maintaining a collection of L{Blocks}
+Contains the L{Memory} class for maintaining a collection of L{Block}
 
 @author: Rob Waaser
 @contact: robwaaser@gmail.com
@@ -24,7 +24,7 @@ class Memory(object):
     Pointers are "registered" by their addresses using the L{registerPointer}
     method. Calling the L{patch} method causes the value of each pointer to 
     be fetched, and the virtual target address to be translated to the real
-    address that data now occupies using the L{Block.translate} method.
+    address that data now occupies using the L{Block} translate method.
     
     @note: It is assumed that the underlying L{Block} objects contain
            non-overlapping and non-consecutive ranges of memory
@@ -58,8 +58,8 @@ class Memory(object):
         
     def __getstate__(self):
         '''
-        L{pickle} calls this method when dumping. Turns off all the
-        blocks so they can be pickled, then returns this object's
+        The I{pickle} system calls this method when dumping. Turns off all 
+        the blocks so they can be pickled, then returns this object's
         __dict__ attribute for serialization. 
          
         @note: The blocks will automatically re-activate themselves 

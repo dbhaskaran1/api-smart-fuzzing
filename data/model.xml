@@ -1,84 +1,82 @@
 <dll>
-	<usertype id="1" type="struct">
-		<param type="c"/>
-		<param type="h"/>
-		<param type="d"/>
-		<param type="c"/>
-	</usertype>
-	<usertype id="2" type="union">
-		<param type="c"/>
-		<param type="h"/>
-		<param type="d"/>
-		<param type="c"/>
-	</usertype>
-	<usertype id="3" type="struct">
-		<param type="1"/>
-		<param type="c"/>
-		<param type="2"/>
-	</usertype>
-	<usertype id="4" type="union">
-		<param type="1"/>
-		<param type="c"/>
-		<param type="2"/>
-	</usertype>
-	<usertype id="5" type="struct">
-		<param type="PPI"/>
-		<param type="P6"/>
-	</usertype>
-	<usertype id="6" type="struct">
-		<param type="Pi"/>
-		<param type="P5"/>
-	</usertype>
-	<usertype id="7" type="struct">
-		<param type="i"/>
-		<param type="P7"/>
-		<param type="P7"/>
-		<param type="P"/>
-	</usertype>
-	
-	<function name="write" ordinal="12">
-    	<param type="Pl"/>
-    	<param type="l"/>
+    <usertype id="430" type="struct">
+        <param type="c"/>
+        <param type="h"/>
+        <param type="d"/>
+        <param type="c"/>
+    </usertype>
+    <usertype id="431" type="union">
+        <param type="c"/>
+        <param type="h"/>
+        <param type="d"/>
+        <param type="c"/>
+    </usertype>
+    <usertype id="432" type="struct">
+        <param type="430"/>
+        <param type="c"/>
+        <param type="431"/>
+    </usertype>
+    <usertype id="433" type="union">
+        <param type="430"/>
+        <param type="c"/>
+        <param type="431"/>
+    </usertype>
+    <usertype id="434" type="struct">
+        <param type="PPI"/>
+        <param type="P435"/>
+    </usertype>
+    <usertype id="435" type="struct">
+        <param type="Pi"/>
+        <param type="P434"/>
+    </usertype>
+    <usertype id="436" type="struct">
+        <param type="i"/>
+        <param type="P436"/>
+        <param type="P436"/>
+        <param type="P"/>
+    </usertype>
+    <function name="write">
+        <param type="Pl"/>
+        <param type="l"/>
     </function>
-    <function name="overflow" ordinal="1">
-    	<param type="i"/>
-    	<param type="c"/>
+    <function name="overflow">
+        <param type="i"/>
+        <param type="c"/>
     </function>
-    <function name="testone" ordinal="6">
-    	<param type="c"/>
-    	<param type="1"/>
-    	<param type="2"/>
+    <function name="testone">
+        <param type="c"/>
+        <param type="430"/>
+        <param type="431"/>
     </function>
-    <function name="testtwo" ordinal="11">
-    	<param type="3"/>
-    	<param type="4"/>
+    <function name="testtwo">
+        <param type="432"/>
+        <param type="433"/>
     </function>
-    <function name="testthree" ordinal="10">
-    	<param type="Pl"/>
-    	<param type="Pl"/>
+    <function name="testthree">
+        <param type="Pl"/>
+        <param type="Pl"/>
     </function>
-    <function name="testfour" ordinal="4">
-    	<param type="Pl"/>
-    	<param type="PH"/>
+    <function name="testfour">
+        <param type="Pl"/>
+        <param type="PH"/>
     </function>
-    <function name="testfive" ordinal="3">
-    	<param type="PPPl"/>
-    	<param type="PPH"/>
+    <function name="testfive">
+        <param type="PPPl"/>
+        <param type="PPH"/>
     </function>
-    <function name="testsix" ordinal="8">
-    	<param type="P1"/>
-    	<param type="P1"/>
+    <function name="testsix">
+        <param type="P430"/>
+        <param type="P430"/>
     </function>
-    <function name="testseven" ordinal="7">
-    	<param type="P1"/>
-    	<param type="P2"/>
+    <function name="testseven">
+        <param type="P430"/>
+        <param type="P431"/>
     </function>
-    <function name="testeight" ordinal="2">
-    	<param type="5"/>
+    <function name="testeight">
+        <param type="434"/>
     </function>
-    <function name="testnine" ordinal="5">
-    	<param type="P7"/>
+    <function name="testnine">
+        <param type="P436"/>
     </function>
-    <function name="testten" ordinal="9">
-    </function>
+    <function name="testten"/>
 </dll>

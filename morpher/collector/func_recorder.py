@@ -16,12 +16,42 @@ from morpher.trace import typemanager
 
 class FuncRecorder(object):
     '''
-    classdocs
+    Used to capture the state of a function call using a supplied debugger.
+    
+    The L{FuncRecorder} class contains enough information to be able to
+    interpret and traverse the stack of another process, captured at the
+    moment of a function call, and pinpoint areas of the stack that need 
+    to be captured and recorded in order to reproduce the function call
+    at a later date. The tagging process used by the L{FuncRecorder} is
+    designed to minimize the amount of memory that is copied for the 
+    capture, while handling complex cases such as structures/unions and
+    capturing the content referenced by pointers. The end goal is to
+    produce a L{Snapshot} object that reproduces the exact same function
+    call and contains all the available information about the types
+    of the objects captured (so they can be intelligently fuzzed).
+    
+    @ivar cfg: The L{Config} object
+    @ivar log: The L{logging} object
+    @ivar model: The XML root L{Node} for the DLL model
+    @ivar stack_align: The alignment requirement for the stack
+    @ivar type_manager: The L{TypeManager} used for type information 
+    @ivar dbg: The L{pydbg} debugger
+    @ivar sm: L{SnapshotManager} object for creating image
     '''
 
     def __init__(self, cfg, model):
         '''
-        Constructor
+        Stores the given config object for local configuration
+        information and initializes the instance variables. The 
+        local type manager is initialized using the supplied model
+        data, which is also used to traverse the stack of the 
+        function being recorded.
+        
+        @param cfg: The configuration object to use
+        @type cfg: L{Config} object
+        
+        @param model: The root node of the XML DLL model 
+        @type model: L{Node} object
         '''
         # The Config object used for configuration info
         self.cfg = cfg
@@ -31,8 +61,8 @@ class FuncRecorder(object):
         self.model = model
         # Stack alignment
         self.stack_align = self.cfg.getint('collector', 'stack_align')
-        # Type interpreter
         
+        # Gather custom type information for the type manager
         usertypes = {}
         for usernode in model.getElementsByTagName("usertype"):
             userid = usernode.getAttribute("id")
@@ -42,25 +72,40 @@ class FuncRecorder(object):
                 userparams.append(childnode.getAttribute("type"))
             usertypes[userid] = (usertype, userparams)
             
+        # Type interpreter  
         self.type_manager = typemanager.TypeManager(usertypes)
         # Debugger
         self.dbg = None
+        # Snapshot manager
+        self.sm = None
     
-    def record(self, dbg, ordinal):
+    def record(self, dbg, name):
         '''
-        Activated upon a function call. Determines which function was called
-        and starts the snapshot process to capture the function arguments
+        Activated upon a function call and used to record the stack. 
+        
+        Should be called when the target process is paused by a debugger at
+        the beginning of a function call. Uses the supplied debugger object 
+        to start the snapshot process and accesses the target process's 
+        memory space to capture the function arguments. 
+        
+        @param dbg: The debugger that should be used to access memory
+        @type dbg: L{pydbg} object
+        
+        @param name: The name of the function we are recording
+        @type name: string
+        
+        @return: The filled snapshot containing the image of this function call
+        @rtype: L{Snapshot} object
         '''
         self.dbg = dbg
         startaddr = self.dbg.context.Esp + 0x4
         # Figure out what function this is
         for node in self.model.getElementsByTagName("function") :
-            if ordinal == int(node.getAttribute("ordinal")) :
+            if name == node.getAttribute("name") :
                 func = node
                 break
-        print "Stopped at stack address %x"  % self.dbg.context.Esp
         # Create the snapshot manager
-        self.sm = snapshot_manager.SnapshotManager(self.cfg, self.dbg, ordinal)
+        self.sm = snapshot_manager.SnapshotManager(self.cfg, self.dbg, name)
         # Tag arguments
         self.tagArgs(startaddr, func)        
         # Create the snapshot
@@ -70,32 +115,57 @@ class FuncRecorder(object):
     
     def tagArgs(self, addr, funcnode):
         '''
-        Given the starting address and function node, tag the arguments.
-        Note that we can't rely on arguments to be properly aligned - 
-        just aligned to the stack requirements.
+        Starts the recursive tag process for this function's args.
+        
+        Given the function XML's model and the address of the arguments,
+        walks through the arguments and tags each one using this object's
+        snapshot manager. 
+        
+        @note: We can't rely on the arguments being properly aligned - 
+               they only need to be aligned to the stack requirements.
+               
+        @param addr: Address the function arguments start at on the stack
+        @type addr: integer
+        
+        @param funcnode: XML L{Node} for the function
+        @type funcnode: L{Node} object
         '''
         curaddr = addr
         for param in funcnode.getElementsByTagName("param") :
             paramtype = param.getAttribute("type")
             (size, _) = self.type_manager.getInfo(paramtype)
             curaddr = self.type_manager.align(curaddr, self.stack_align)
-            print "Calling tag on argument of type %s address %x" % (paramtype, curaddr)
             self.tag(curaddr, paramtype)
             if paramtype.isdigit() :
-                print "adding arg tag of type %s address %x" % (paramtype, curaddr)
                 self.sm.addArg(curaddr, paramtype)
             else :
-                print "adding arg tag of type %s address %x" % (paramtype[0], curaddr)
                 self.sm.addArg(curaddr, paramtype[0])
             curaddr += size
     
     def tag(self, addr, paramtype):
         '''
-        Given an address and a type. either basic (ex. "i") or user-defined (ex. "1"),
-        tag the object for collection and recursively tag any member objects or 
-        objects it points to
+        Given an address and a type. either basic (ex. "i") or user-defined 
+        (ex. "1"), tag the object for collection and recursively tag any 
+        member objects or objects it points to.
+        
+        If the type is user-defined (for example, "1" indicates a user-defined
+        type such as a struct), the type's definition is looked up using the
+        model and the fields of the type are individually tagged. If the type
+        is a basic type, the type is tagged. If the type is a pointer type,
+        such as "PPI", a pointer tag ("P") is added and the tagging is 
+        recursively performed on the type pointed to ("PI") at the address
+        contained in the pointer type.
+        
+        @note: The tagging algorithm is designed to only record a tag once,
+               and handle pointer loops, pointers to the same object but as
+               different types, and other complications.
+        
+        @param addr: The address of the object to tag
+        @type addr: integer
+        
+        @param paramtype: The format string representing the object's type
+        @type paramtype: string
         '''
-        print "tag called with addr %x type %s" % (addr, paramtype)
         # Check the node type
         if paramtype.isdigit() :
             if not self.sm.checkObject(addr, paramtype) :
@@ -126,16 +196,13 @@ class FuncRecorder(object):
         else :
             # This is a basic type - add it if tag does not already exist
             basictype = paramtype[0]
-            print "basictype = %s" % basictype
             if not self.sm.checkObject(addr, basictype) :
                 (size, _) = self.type_manager.getInfo(basictype)
                 self.sm.addObject(addr, size, basictype)
             # If it's a pointer follow it even if it's already been added -
             # the type it points to could be different. Don't follow if
             # its just "P" (a void * pointer)
-            print "len of type %d" % len(paramtype)
             if paramtype[0] == "P" and len(paramtype) > 1:
-                print "Recursing"
                 # Get the pointer's type (everything after the first P)
                 ptype = paramtype[1:]
                 # Read the pointer's value (address of object)
@@ -153,7 +220,6 @@ class FuncRecorder(object):
                 try : 
                     self.dbg.read_process_memory(paddr, size)
                 except pdx.pdx :
-                    print "can't collect: paddr = %x" % (paddr)
                     return
                 # Tag the pointed-to object
                 self.tag(paddr, ptype)

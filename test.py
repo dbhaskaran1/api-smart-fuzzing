@@ -3,8 +3,9 @@ Created on Oct 26, 2011
 
 @author: Rob
 '''
-from morpher.misc import block, memory, config, statusreporter, sectionreporter, typeconvert
-from morpher.fuzzer import harness, monitor, fuzzer, mutator
+from morpher.misc import config, status_reporter, section_reporter
+from morpher.trace import block, memory, typemanager
+from morpher.fuzzer import harness, monitor, fuzzer, generator
 from morpher.trace import typemanager, trace, snapshot, tag
 import ctypes
 import pickle
@@ -444,9 +445,22 @@ def testSnapshot():
         print args[0].field_1.field_0
         print args[0].field_1.field_1
         print args[0].field_1.field_2
-
+        
+def testSpinner():
+    # works for windows
+    # Twenty ='s seems best
+    for i in range(3) :
+        sys.stdout.write("- Test\r")
+        time.sleep(1)
+        sys.stdout.write("\ Test\r")
+        time.sleep(1)
+        sys.stdout.write("| Test\r")
+        time.sleep(1)
+        sys.stdout.write("/ Test\r")
+        time.sleep(1)
+    
 if __name__ == '__main__':
-    testSnapshot()
+    testSpinner()
     
         
     

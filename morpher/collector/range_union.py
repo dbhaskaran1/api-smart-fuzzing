@@ -12,18 +12,36 @@ from collections import deque
 
 class RangeUnion(object):
     '''
-    Used to maintain a list of ranges (intervals) where the list
-    maintains the invariant that all intervals are nonoverlapping,
-    in sorted order, and maximal (two consecutive ranges that together
-    cover a single unbroken sequence of integers will be merged to one)
+    Used to maintain a list of ranges 
+    
+    The class is designed to solve the problem where a list of ranges
+    is given and needs to be "simplified" to an equivalent list with 
+    the minimum possible number of ranges and no overlaps. The range list
+    is maintained as the instance variable rlist, and rlist is updated
+    each time a new range is added with the L{add} method.
+    
+    Ranges are represented by the "Range" L{namedtuple}
+    
+    @invariant: Intervals in the range list do not overlap, are in sorted
+                order from lowest address to highest, and for any two 
+                consecutive ranges in the list there is a separation of 
+                at least 1 between the ending address of the first and 
+                the beginning address of the second.
+    
+    @todo: Improve performance of the RangeUnion - use a tree structure?
+    
+    @ivar rlist: A list of Range objects
     '''
     # Our Range type, a tuple of the high and low number
     Range = namedtuple('Range', ['low', 'high'])
     
     def __init__(self, startlist=None):
         '''
-        Optional argument allows RangeUnion to be initialized
-        from an existing range list
+        Takes an optional argument that allows this L{RangeUnion} to 
+        be initialized from an existing range list, otherwise empty.
+        
+        @param startlist: The list of ranges to be initialized from
+        @type startlist: Range object list
         '''
         # The internal sorted list of non-overlapping ranges
         self.rlist = deque()
@@ -39,6 +57,9 @@ class RangeUnion(object):
         range information but remains sorted and non-overlapping.
         Note that the ranges are at integer granularity, so the
         range (1, 4) and range (5, 7) can be merged to range (1, 7)
+        
+        @param c: Range to add
+        @type c: Range object
         '''
         if len(self.rlist) == 0 :
             c = RangeUnion.Range(c.low, c.high)

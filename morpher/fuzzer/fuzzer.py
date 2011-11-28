@@ -28,7 +28,7 @@ class Fuzzer(object):
     entire process is repeated for the next tag.
     
     @todo: Possibly expand fuzzing to multiple tags at once
-    @todo: Possibly generate L{Traces} for functions we didn't 
+    @todo: Possibly generate L{Trace} for functions we didn't 
            actually collect any data for.
     @todo: Possibly look at fuzzing global variables
     @todo: Possibly fuzz ORDER of function calls, not just data
@@ -78,8 +78,6 @@ class Fuzzer(object):
                
         @note: A L{SectionReporter} object is instantiated and used
                to track the overall progress for the user.
-        
-        @todo: Add an option to disable printing messages/status bar
         '''
         # Check if fuzzing is enabled
         if not self.cfg.getboolean('fuzzer', 'enabled') : 

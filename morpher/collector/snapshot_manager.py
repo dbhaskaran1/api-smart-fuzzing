@@ -14,13 +14,41 @@ from morpher.pydbg import pdx
 
 class SnapshotManager(object):
     '''
-    classdocs
+    Designed to simplify the process of properly creating a L{Snapshot}
+    object. 
+    
+    The L{SnapshotManager} provides a simple interface consisting
+    of functions like L{addArg} and L{addObject} and handles the more complex
+    issues in the background, such as using sets to ensure the uniqueness of
+    L{Tag}s added to the L{Snapshot} and L{RangeUnion} objects to ensure that
+    the minimal amount of memory is copied for the L{Snapshot}. The contents
+    of the target process memory are not copied until the L{snapshot} method 
+    is called, which uses all the information accumulated to record areas of
+    memory using the debugger and create the requested L{Snapshot}
+    
+    @ivar cfg: The L{Config} object
+    @ivar log: The L{logging} object
+    @ivar dbg: The L{pydbg} debugger for capturing memory
+    @ivar name: Name of the function we are recording
+    @ivar tset: The set of L{Tag} objects for this capture
+    @ivar ru: L{RangeUnion} object used for ensuring that the minimum necessary 
+              amount of process memory is captured
+    @ivar args: Ordered list of L{Tag}s corresponding to the function arguments
     '''
 
-    def __init__(self, cfg, dbg, ordinal):
+    def __init__(self, cfg, dbg, name):
         '''
-        Constructor takes a cfg object and a pydbg debugger attached to
-        the target process
+        Stores the configuration object, a pydbg debugger attached to
+        the target process, and the name of the function being captured.
+        
+        @param cfg: The configuration object to use
+        @type cfg: L{Config} object
+        
+        @param dbg: The debugger used to access the target process
+        @type dbg: L{pydbg} object
+        
+        @param name: The name of the function being called
+        @type name: string
         '''
         # The Config object used for configuration info
         self.cfg = cfg
@@ -28,8 +56,8 @@ class SnapshotManager(object):
         self.log = logging.getLogger(__name__)
         # The pydbg object used to read the process memory for the snapshot
         self.dbg = dbg
-        # Ordinal of the function we are snapshotting
-        self.ordinal = ordinal
+        # Name of the function we are snapshotting
+        self.name = name
         # Set of tags that need to be registered in the snapshot
         self.tset = set()
         # The RangeUnion object used to construct the final list of memory
@@ -38,22 +66,46 @@ class SnapshotManager(object):
         # The function's argument tags
         self.args = []
         
-    def addArg(self, start, fmt):
+    def addArg(self, addr, fmt):
         '''
         Add a tag (start, fmt) to our list of argument tags
-        '''
-        self.args.append(tag.Tag(start, str(fmt)))
         
-    def checkObject(self, start, fmt):
+        @param addr: Address of the argument being added
+        @type addr: integer
+        
+        @param fmt: Format string representing the argument type
+        @type fmt: string
         '''
-        Returns True if the tag (start, fmt) is already in the manager
+        self.args.append(tag.Tag(addr, str(fmt)))
+        
+    def checkObject(self, addr, fmt):
         '''
-        return tag.Tag(start, str(fmt)) in self.tset
+        Returns True if the tag (addr, fmt) is already in the manager
+        
+        @param addr: Address of the object being checked
+        @type addr: integer
+        
+        @param fmt: Format string representing the object type
+        @type fmt: string
+        
+        @return: I{True} if tag already registered, I{False} otherwise
+        @rtype: Boolean
+        '''
+        return tag.Tag(addr, str(fmt)) in self.tset
         
     def addObject(self, start, size, fmt):
         '''
-        Adds the memory range from start to start + (size of fmt) -1 to the list
-        of areas we need to record for the snapshot and adds a tag for the object
+        Adds the memory range from start to start + (size of fmt) -1 to the 
+        list of areas to capture. A (start, fmt) tag is added for the object.
+        
+        @param start: Address of the object being added
+        @type start: integer
+        
+        @param size: Size of the object being added
+        @type size: integer
+        
+        @param fmt: Format string representing the object type
+        @type fmt: string
         '''
         # Create and add the tag
         t = tag.Tag(start, str(fmt))
@@ -67,7 +119,12 @@ class SnapshotManager(object):
     def snapshot(self):
         '''
         Uses the debugger to record the requested areas of the process's memory
-        and returns the contents as a Memory object
+        and returns the contents as a new L{Snapshot} object. The L{Snapshot}
+        is populated using the tags registered using L{addObject} and the 
+        arguments added using L{addArg}.
+        
+        @return: The newly created L{Snapshot}
+        @rtype: L{Snapshot} object
         '''
         blist = []
         self.log.info("Recording snapshot to file")
@@ -84,10 +141,10 @@ class SnapshotManager(object):
                 continue
             blist.append((addr, data))
         # Get function ordinal and arguments address
-        self.log.debug("Setting ordinal to %d", self.ordinal)
+        self.log.debug("Setting name to %s", self.name)
         self.log.debug("Creating memory object")
         # Create the Snapshot and populate it
-        s = snapshot.Snapshot(self.ordinal, blist)
+        s = snapshot.Snapshot(self.name, blist)
         s.setArgs(self.args)
         for t in self.tset :
             if not t.fmt.isdigit() :

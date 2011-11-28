@@ -30,13 +30,13 @@ class Snapshot(object):
     
     @ivar mem: Internal L{Memory} object for storing data
     @ivar tags: Set of L{Tag} objects associating types with data
-    @ivar ordinal: The ordinal of the function call that was captured
+    @ivar name: The name of the function call that was captured
     @ivar args: Ordered list of L{Tag} objects describing function arguments
     @ivar type_manager: Used to temporarily store a L{TypeManager} used 
                         during a function call
     '''
 
-    def __init__(self, ordinal, blklist):
+    def __init__(self, name, blklist):
         '''
         Stores the given function information and the contents of memory
         described as a list of (address, data) tuples, where address is 
@@ -45,8 +45,8 @@ class Snapshot(object):
         
         @requires: blklist must consist of disjoint memory ranges
         
-        @param ordinal: The ordinal of the function call captured
-        @type ordinal: integer
+        @param name: The name of the function call captured
+        @type name: string
         
         @param blklist: The contents of this L{Memory} as a list of
                         (address, data) pairs
@@ -57,7 +57,7 @@ class Snapshot(object):
         # Set of object tags in our memory
         self.tags = set()
         # Ordinal of the function we recorded
-        self.ordinal = ordinal
+        self.name = name
         # Ordered list of argument tags
         self.args = []
         # Type Manager
@@ -136,7 +136,7 @@ class Snapshot(object):
         @rtype: string
         '''
         snapstr = "Snapshot Contents:\n"
-        snapstr += "Ordinal: %d\n" % self.ordinal
+        snapstr += "Function Name: %s\n" % self.name
         if len(self.args) == 0 :
             snapstr += "Arguments not specified\n" 
         else :

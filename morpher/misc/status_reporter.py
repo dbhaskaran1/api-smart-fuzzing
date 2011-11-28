@@ -44,6 +44,7 @@ class StatusReporter(object):
     @ivar current: The number of units to display in the status bar
     @ivar starttime: The time that the L{start} method was called
     @ivar maxlen: The maximum length that the status bar can print on a line
+    @ivar sym: The currently displayed "spinner" symbol
     
     @see: L{SectionReporter} extends this class with additional capability
     '''
@@ -86,6 +87,8 @@ class StatusReporter(object):
         self.starttime = None
         # The maximum length the estimate can take up
         self.maxlen = len(" Estimated 000 hr 00 min 00 sec remaining... ")
+        # The currently displayed symbol
+        self.sym = "-"
         
     def start(self, msg="  Status:"):
         '''
@@ -102,7 +105,8 @@ class StatusReporter(object):
         self.events = 0
         self.current = 0
         self.starttime = time.time()
-        bar = "  [" + " " * (self.size) + "]   0% "
+        self.sym = "-"
+        bar = "  " + self.sym + " [" + " " * (self.size) + "]   0% "
         if self.dynamic :
             newline = "\r"
         else :
@@ -155,7 +159,7 @@ class StatusReporter(object):
         When displayed the status bar should appear similar to::
         
             Status:
-            [====          ]  25% Estimated  1 min 30 sec remaining.....
+            \ [====          ]  25% Estimated  1 min 30 sec remaining.....
             
         If dynamic updating is set, the last line is erased and rewritten
         each time the bar is updated; otherwise it is reprinted on the
@@ -163,7 +167,15 @@ class StatusReporter(object):
         '''
         # Create the progress bar
         self.current = (self.events * self.size) / self.total
-        bar = "  [" + "=" * self.current + " " * (self.size - self.current) + "]"
+        
+        # Advance the spinner - don't print if we're done
+        if self.events == self.total :
+            sym = " "
+        else :
+            self._advanceSym()
+            sym = self.sym
+        
+        bar = "  " + sym + " [" + "=" * self.current + " " * (self.size - self.current) + "]"
         
         # Create the percentage completion display
         percent = " %3d%%" % ((self.events*100)/self.total)
@@ -204,3 +216,15 @@ class StatusReporter(object):
         # Write out the bar using stdout.write so we can do carriage return
         sys.stdout.write(newline + bar + percent + estimated)
         
+    def _advanceSym(self):
+        '''
+        Advances the internal "spinner" symbol by one position.
+        '''
+        if self.sym == "-" :
+            self.sym = "\\"
+        elif self.sym == "\\" :
+            self.sym = "|"
+        elif self.sym == "|" :
+            self.sym = "/"
+        else :
+            self.sym = "-"

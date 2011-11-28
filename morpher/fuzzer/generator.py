@@ -19,7 +19,7 @@ class Generator(object):
     
     This class operates by accepting a L{struct} style format character
     and an original value. A map is used to match the format string type
-    to the appropriate generator functin - for example, unsigned integer
+    to the appropriate generator function - for example, unsigned integer
     types of all sizes are fuzzed using the L{_getUints} function. The 
     individual generator functions return the values as a set, ensuring
     that no value is repeated, which is turned into a list and returned

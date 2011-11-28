@@ -14,7 +14,7 @@ class TypeManager(object):
     
     Maintains a map of format strings to classes representing the 
     equivalent type. Format strings match the same types used in the
-    L{struct} module and can also specify a numeric ID of a user-defined
+    I{struct} module and can also specify a numeric ID of a user-defined
     type. The information for user-defined types is constructed from
     a supplied dictionary mapping user type ids to a tuple, where the tuple
     contains the type ("struct" or "union") and a list of format strings
@@ -26,7 +26,7 @@ class TypeManager(object):
     for any type represented by a format string, by using the associated
     L{ctypes} methods on their representative classes. These operations
     are memoized to improve performance, but any information that cannot
-    be serialized by the L{pickle} module is discarded upon serialization,
+    be serialized by the I{pickle} module is discarded upon serialization,
     and the information is reconstructed again after deserialization.
     
     @ivar table: The dictionary mapping format strings to L{ctypes} classes
@@ -66,8 +66,9 @@ class TypeManager(object):
                 
     def __getstate__(self):
         '''
-        L{pickle} calls this method when dumping. Prevents the type table
-        from being serialized (saves space and time reading in the file)
+        The I{pickle} system calls this method when dumping. Prevents the 
+        type table from being serialized (saves space and time reading in 
+        the file)
         
         @return: The __dict__ attibute of this object
         @rtype: dictionary
@@ -110,7 +111,7 @@ class TypeManager(object):
         performance but the memoization table is deleted when
         the object is serialized.
         
-        Format strings can be of the types defined by the L{struct}
+        Format strings can be of the types defined by the I{struct}
         module, in which case only the first character is used, or
         the text can represent a number, in which case the usertype
         with the matching id is used. 

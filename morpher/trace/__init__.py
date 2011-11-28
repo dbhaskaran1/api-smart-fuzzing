@@ -2,6 +2,8 @@
 Contains various modules used to model and store data captured from
 a function call.
 
+G{packagetree}
+
 The core components of this module build off each other to encapsulate 
 chunks of memory captured from another process, along with enough information
 about types, address, etc to be able to reconstruct and replay data to 
@@ -18,17 +20,17 @@ deserialization.
 
 Type information is captured mainly through the use of L{Tag} objects, which
 merely record an address and a format string similar to those used by the
-L{struct} module. A L{TypeManager} object can be used to translate these format
-types into L{ctypes} objects suitable as function arguments for a DLL function.
+I{struct} module. A L{TypeManager} object can be used to translate these format
+types into I{ctypes} objects suitable as function arguments for a DLL function.
 One of the most important aspects of these classes is to properly reconstruct 
-L{ctypes} struct and union classes from stored information about user-defined
+I{ctypes} struct and union classes from stored information about user-defined
 types.
 
 L{Snapshot} puts all the pieces together in order to capture a function call
 in it's entirety. It contains a L{Memory} object with the actual data, a 
 collection of L{Tag}s giving types for that data, and a L{TypeManager} that
 can translate those tags into meaningful classes. L{Snapshot} is responsible
-for using all this information to reconstruct L{ctypes} objects respresenting
+for using all this information to reconstruct I{ctypes} objects respresenting
 the original arguments that can be used in a function call, and in such a way
 that all pointers point to the same data that they did when originally captured.
 

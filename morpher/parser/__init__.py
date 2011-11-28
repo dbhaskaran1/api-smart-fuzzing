@@ -1,5 +1,7 @@
 '''
 Package documentation
+
+G{packagetree}
 '''
 
 __all__ = \

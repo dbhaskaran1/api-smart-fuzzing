@@ -112,12 +112,13 @@ class Harness(multiprocessing.Process):
         if debug :
             self.log.debug("Received trace:\n\n%s\n", trace.toString())
         # Run each function capture in order
-        for (ordinal, args) in trace.replay() :
-            self.log.info("Calling function ordinal %d", ordinal)
+        for (name, args) in trace.replay() :
+            self.log.info("Calling function %s", name)
             # Let Harness know we're about to make a call
             self.outpipe.send(True)
             # Make the call
-            result = target[ordinal](*args)
+            func = getattr(target, name)
+            result = func(*args)
             self.log.info("Function returned result: %s", str(result))
         
         if debug :

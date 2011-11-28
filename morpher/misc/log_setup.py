@@ -110,7 +110,7 @@ def translateLevel(string):
       
     An exception is raised if no match is found for the given string
 
-    @note: The given string is converted to lowercase and L{strip} is applied
+    @note: The given string is converted to lowercase and I{strip()} is applied
            before any comparisons
            
     @raise Exception: Throw an exception if the given string is not matched

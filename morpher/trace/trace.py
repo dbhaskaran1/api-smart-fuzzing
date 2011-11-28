@@ -17,8 +17,11 @@ class Trace(object):
     entire series of function calls exactly as they were first observed.
     
     @note: L{Trace} is built entirely from serializable objects, allowing
-           a L{Trace} object to be saved using the L{pickle} module and 
-           restored without any noticeable problems  
+           a L{Trace} object to be saved using the I{pickle} module and 
+           restored without any noticeable problems 
+
+    @ivar snapshots: list of L{Snapshot} making up the trace
+    @ivar type_manager: The L{TypeManager} object
     '''
 
     def __init__(self, snapshots, usertypes={}):
@@ -49,10 +52,10 @@ class Trace(object):
         that function.
         
         @return: function ordinals paired with argument lists
-        @rtype: (ordinal, L{ctypes} object list)
+        @rtype: (ordinal, I{ctypes} object list)
         '''
         for s in self.snapshots:
-            yield (s.ordinal, s.replay(self.type_manager))
+            yield (s.name, s.replay(self.type_manager))
             
     def toString(self):
         '''
