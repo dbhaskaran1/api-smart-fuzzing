@@ -3,6 +3,12 @@ Created on Oct 21, 2011
 
 @author: Rob
 '''
+
+# Remove yacctab.py
+# Remove DllExplorer config
+# Add Logging
+# Output coverage
+
 import xml.dom.minidom as xml
 import logging
 import os
@@ -27,12 +33,16 @@ class Parser(object):
         '''
         # The Config object used for configuration info
         self.cfg = cfg
+        
         # The logging object used for reporting
         self.log = logging.getLogger(__name__)
+        
         # The dllexp.exe wrapper object for getting export data
         self.dllexp = dllexp.DllExp(cfg)
         
-        self.targetfile = self.cfg.get('parser', 'headerpath')
+        # split header files separated by ';'
+        tmp = self.cfg.get('parser', 'headerpath')
+        self.targetfile = tmp.split(';')
         
         self.compiler = self.cfg.get('parser', 'precomppath')
         
@@ -67,31 +77,32 @@ class Parser(object):
             
             Errors from cpp will be printed out. 
         """
-        #if use_cpp:   
+  
         path_list = [self.compiler]
         if isinstance(self.compilerflags, list):
             path_list += self.compilerflags
         elif self.compilerflags != '': 
             path_list += [self.compilerflags]
-        path_list += [self.targetfile]
+        path_list += self.targetfile
            
         pipe = Popen(path_list, stdout=PIPE, universal_newlines=True)
         text = pipe.communicate()[0]
-            
-#        f = open('foo.txt', 'w')
-#        f.write(text)
-#        f.close()
         
         # Make the output pycparser compatible
         text = re.sub('__stdcall',"",text)
         text = re.sub('__attribute__\(\(.*?\)\)*',"",text)
         text = re.sub('#.*',"",text)
+        #text = re.sub('extern \"C\"', "", text)
+        
+        f = open('foo.txt', 'w')
+        f.write(text)
+        f.close()
         
         parser = CParser(lex_optimize=False, yacc_debug=False, yacc_optimize=False)
     
         return parser.parse(text, self.targetfile)
 
-    def parseXML(self, ast, element, name, state, printflag):
+    def parseXML(self, ast, element, name, printflag):
         """ 
             Fill in data!!
         """
@@ -101,46 +112,47 @@ class Parser(object):
         if funcName == "Decl":
             # Declaration of an object - get the name and pass it on!
             for c in ast.children():                                
-                val = self.parseXML(c, element, getattr(ast, ast.attr_names[0]), state, printflag)            
+                val = self.parseXML(c, element, getattr(ast, ast.attr_names[0]), printflag)            
                 return val
         elif funcName == "FuncDecl":
             # Function Declaration - Take input from the Decl node for the name, and explore all sub-nodes
             func = self.doc.createElement("function")
             func.setAttribute("name", name)
-            if self.text.find(str(name)) != -1:   
+
+            if str(name) in self.text:
                 printflag |= 1
             else:
                 printflag |= 0  
                   
             for c in ast.children():    
-                val = self.parseXML(c, func, name, state, printflag)
+                val = self.parseXML(c, func, name, printflag)
                     
-            if state == 1 and printflag == 1 and str(name) not in self.xmlMap:                
+            if printflag == 1 and str(name) not in self.xmlMap:                
                 self.top.appendChild(func)
-                self.xmlMap[str(name)] = 1
             return None 
         elif funcName == "ParamList":
             # The parameter list! List all the parameters!!
             for c in ast.children():
                 param = self.doc.createElement("param")
-                val = self.parseXML(c, param, name, state, printflag)
+                val = self.parseXML(c, param, name, printflag)
                 if val != None:
+                    if val == "":
+                        val = "P"
                     param.setAttribute("type", val)
-                if state == 1:
                     element.appendChild(param) 
         elif funcName == "PtrDecl":
             for c in ast.children():
-                val = self.parseXML(c, element, name, state, printflag)
+                val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     return "P" + val
         elif funcName == "TypeDecl":
             for c in ast.children():
-                val = self.parseXML(c, element, name, state, printflag)
+                val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     return val
         elif funcName == "Typename":
             for c in ast.children():
-                val = self.parseXML(c, element, name, state, printflag)
+                val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     return val
         elif funcName == "IdentifierType":
@@ -179,28 +191,18 @@ class Parser(object):
                     return "f"
                 elif val[0] in self.typeMap:
                     iterMap = self.typeMap[val[0]]
-                    while len(iterMap) > 2 and iterMap[0:2] == "//":
-                        if iterMap[2:] in self.typeMap:
-                            iterMap = self.typeMap[str(iterMap[2:])]
-                        else:
-                            return ""
-    
+
+                    if iterMap in self.xmlMap and printflag == 1:
+                        self.top.appendChild(self.xmlMap[iterMap])
+                        del self.xmlMap[iterMap]
                     return str(iterMap)
                 else:
                     return ""
         elif funcName == "Typedef":
-            #type = doc.createElement("usertype")
-            #type.setAttribute("name", getattr(ast, ast.attr_names[0]))
-            #type.setAttribute("id", str(1))
-            #type.setAttribute("type", "typedef")
             for c in ast.children():
-                val = self.parseXML(c, element, name, state, printflag)
+                val = self.parseXML(c, element, name, printflag)
                 if val != None:
-                    #param = doc.createElement("param")
-                    #param.setAttribute("type", val)
-                    #type.appendChild(param)
                     self.typeMap[getattr(ast, ast.attr_names[0])] = val
-            #element.appendChild(type)
             return None 
         elif funcName == "Struct":
             if getattr(ast, ast.attr_names[0]) not in self.typeMap:
@@ -209,40 +211,35 @@ class Parser(object):
                 self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind)
             else:
                 ind = self.typeMap[getattr(ast, ast.attr_names[0])]
-                if state != 1:
-                    return str(self.typeMap[getattr(ast, ast.attr_names[0])])
                 
             changed = 0
     
             typex = self.doc.createElement("usertype")
-            #typex.setAttribute("name", getattr(ast, ast.attr_names[0]))
             typex.setAttribute("id", str(ind))
             typex.setAttribute("type", "struct")
             
-            if self.text.find(str(getattr(ast, ast.attr_names[0]))) != -1:   
+            if str(getattr(ast, ast.attr_names[0])) in self.text:
                 printflag |= 1
             else:
                 printflag |= 0
                   
             for c in ast.children():
-                val = self.parseXML(c, typex, name, state, printflag)
+                val = self.parseXML(c, typex, name, printflag)
                 if val != None:
                     param = self.doc.createElement("param")
+                    if val == "":
+                        val = "i"
                     param.setAttribute("type", val)
                     typex.appendChild(param)
                     changed = 1
+            
             if changed == 1:
-                if state == 1 and printflag == 1 and str(getattr(ast, ast.attr_names[0])) not in self.xmlMap:
-                    self.top.appendChild(typex)
-                    self.xmlMap[str(getattr(ast, ast.attr_names[0]))] = 1
-                return str(ind)
-            else:
-                #if getattr(ast, ast.attr_names[0]) not in self.typeMap:
-                #    self.typeMap['#!@#index'] = self.typeMap['#!@#index'] - 1
-                #return "//"+getattr(ast, ast.attr_names[0])
-                return str(ind)
-            #else:
-            #   return str(typeMap[getattr(ast, ast.attr_names[0])])
+                self.xmlMap[str(ind)] = typex
+            if printflag == 1 and str(ind) in self.xmlMap:
+                self.top.appendChild(self.xmlMap[str(ind)])
+                del self.xmlMap[str(ind)]
+                
+            return str(ind)
         elif funcName == "Union":
             if getattr(ast, ast.attr_names[0]) not in self.typeMap:
                 ind = self.typeMap['#!@#index']
@@ -253,52 +250,50 @@ class Parser(object):
             changed = 0
     
             typex = self.doc.createElement("usertype")
-            #type.setAttribute("name", getattr(ast, ast.attr_names[0]))
             typex.setAttribute("id", str(ind))
             typex.setAttribute("type", "union")
             
-            if self.text.find(str(getattr(ast, ast.attr_names[0]))) != -1:   
+            if str(getattr(ast, ast.attr_names[0])) in self.text:
                 printflag |= 1
             else:
                 printflag |= 0             
             
             for c in ast.children():
-                val = self.parseXML(c, typex, name, state, printflag)
+                val = self.parseXML(c, typex, name, printflag)
                 if val != None:
                     param = self.doc.createElement("param")
+                    if val == "":
+                        val = "i"
                     param.setAttribute("type", val)
                     typex.appendChild(param)
                     self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind)
                     changed = 1
+                    
             if changed == 1:
-                if state == 1 and printflag == 1 and str(getattr(ast, ast.attr_names[0])) not in self.xmlMap:
-                    self.top.appendChild(typex)
-                    self.xmlMap[str(getattr(ast, ast.attr_names[0]))] = 1
-                return str(ind)
-            else:
-                #if getattr(ast, ast.attr_names[0]) not in self.typeMap:
-                #    self.typeMap['#!@#index'] = self.typeMap['#!@#index'] - 1
-                #return "//"+getattr(ast, ast.attr_names[0])
-                return str(ind)
-            #else:
-            #    return str(typeMap[name])
+                self.xmlMap[str(ind)] = typex
+
+            if printflag == 1 and str(ind) in self.xmlMap:
+                self.top.appendChild(self.xmlMap[str(ind)])
+                del self.xmlMap[str(ind)]
+                
+            return str(ind)
         elif funcName == "Enum":
             return "i"
         elif funcName == "Constant":
             for c in ast.children():
-                val = self.parseXML(c, element, None, state, printflag)
-            return "["+getattr(ast, ast.attr_names[1])+"]"
+                val = self.parseXML(c, element, None, printflag)
+            return ""
         elif funcName == "ArrayDecl":
             val = ""
             for c in ast.children():
-                getVal = self.parseXML(c, element, None, state, printflag)
+                getVal = self.parseXML(c, element, None, printflag)
                 if getVal != None:
                     val += getVal
-            return val
+            return "P" + val
         else:
             val = ""
             for c in ast.children():
-                val = self.parseXML(c, element, None, state, printflag)
+                val = self.parseXML(c, element, None, printflag)
             return val
 
     def parse(self):
@@ -322,12 +317,11 @@ class Parser(object):
         self.log.info("Beginning parse routine")
         
         # Retrieve the export table from the DLL
-        #exportlist = self.dllexp.getFunctions()
+        exportlist = self.dllexp.getFunctions()
         sr.pulse()
         
         ast = self.parse_file()
         sr.pulse()
-        self.text = str(open(self.targetfile, 'rU').read())
     
         # Create the XML tree    
         self.log.info("Creating the XML model")
@@ -337,19 +331,16 @@ class Parser(object):
         self.typeMap = {}
         self.typeMap['#!@#index'] = 1
         
+        self.text = {}
+        for (fname, _, _) in exportlist :
+            self.text[fname] = 1
+
+        sr.pulse()    
+
         self.xmlMap = {}
     
-        self.parseXML(ast, self.top, None, 0, 0)
+        self.parseXML(ast, self.top, None, 0)
         sr.pulse()
-        self.parseXML(ast, self.top, None, 1, 0)
-        sr.pulse()
-        # Add function nodes
-        #for (fname, ordinal, addr) in exportlist :
-        #    func = doc.createElement("function")
-        #    func.setAttribute("name", fname)
-        #    func.setAttribute("ordinal", str(ordinal))
-        #    func.setAttribute("address", str(addr))
-        #    top.appendChild(func)
             
         # Write out the model file
         self.log.info("Writing XML tree to model file")

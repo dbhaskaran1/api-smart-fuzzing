@@ -1,82 +1,288 @@
 <dll>
-    <usertype id="430" type="struct">
-        <param type="c"/>
-        <param type="h"/>
-        <param type="d"/>
-        <param type="c"/>
-    </usertype>
-    <usertype id="431" type="union">
-        <param type="c"/>
-        <param type="h"/>
-        <param type="d"/>
-        <param type="c"/>
-    </usertype>
-    <usertype id="432" type="struct">
-        <param type="430"/>
-        <param type="c"/>
-        <param type="431"/>
-    </usertype>
-    <usertype id="433" type="union">
-        <param type="430"/>
-        <param type="c"/>
-        <param type="431"/>
-    </usertype>
-    <usertype id="434" type="struct">
-        <param type="PPI"/>
-        <param type="P435"/>
-    </usertype>
-    <usertype id="435" type="struct">
-        <param type="Pi"/>
-        <param type="P434"/>
-    </usertype>
-    <usertype id="436" type="struct">
-        <param type="i"/>
-        <param type="P436"/>
-        <param type="P436"/>
+    <function name="memchr">
         <param type="P"/>
-    </usertype>
-    <function name="write">
-        <param type="Pl"/>
-        <param type="l"/>
-    </function>
-    <function name="overflow">
         <param type="i"/>
-        <param type="c"/>
+        <param type="I"/>
     </function>
-    <function name="testone">
-        <param type="c"/>
-        <param type="430"/>
-        <param type="431"/>
+    <function name="memcmp">
+        <param type="P"/>
+        <param type="P"/>
+        <param type="I"/>
     </function>
-    <function name="testtwo">
-        <param type="432"/>
-        <param type="433"/>
+    <function name="memcpy">
+        <param type="P"/>
+        <param type="P"/>
+        <param type="I"/>
     </function>
-    <function name="testthree">
-        <param type="Pl"/>
-        <param type="Pl"/>
+    <function name="memmove">
+        <param type="P"/>
+        <param type="P"/>
+        <param type="I"/>
     </function>
-    <function name="testfour">
-        <param type="Pl"/>
+    <function name="memset">
+        <param type="P"/>
+        <param type="i"/>
+        <param type="I"/>
+    </function>
+    <function name="strcat">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strchr">
+        <param type="Pc"/>
+        <param type="i"/>
+    </function>
+    <function name="strcmp">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strcoll">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strcpy">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strcspn">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strerror">
+        <param type="i"/>
+    </function>
+    <function name="_strerror">
+        <param type="Pc"/>
+    </function>
+    <function name="strlen">
+        <param type="Pc"/>
+    </function>
+    <function name="strncat">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="strncmp">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="strncpy">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="strpbrk">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strrchr">
+        <param type="Pc"/>
+        <param type="i"/>
+    </function>
+    <function name="strspn">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strstr">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strtok">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="strxfrm">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="_memccpy">
+        <param type="P"/>
+        <param type="P"/>
+        <param type="i"/>
+        <param type="I"/>
+    </function>
+    <function name="_memicmp">
+        <param type="P"/>
+        <param type="P"/>
+        <param type="I"/>
+    </function>
+    <function name="_strdup">
+        <param type="Pc"/>
+    </function>
+    <function name="_strcmpi">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="_stricmp">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="_stricoll">
+        <param type="Pc"/>
+        <param type="Pc"/>
+    </function>
+    <function name="_strlwr">
+        <param type="Pc"/>
+    </function>
+    <function name="_strnicmp">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="_strnset">
+        <param type="Pc"/>
+        <param type="i"/>
+        <param type="I"/>
+    </function>
+    <function name="_strrev">
+        <param type="Pc"/>
+    </function>
+    <function name="_strset">
+        <param type="Pc"/>
+        <param type="i"/>
+    </function>
+    <function name="_strupr">
+        <param type="Pc"/>
+    </function>
+    <function name="_swab">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="_mbschr">
+        <param type="PB"/>
+        <param type="PB"/>
+    </function>
+    <function name="_mbsncat">
+        <param type="PB"/>
+        <param type="PB"/>
+        <param type="I"/>
+    </function>
+    <function name="_mbstok">
+        <param type="PB"/>
+        <param type="PB"/>
+    </function>
+    <function name="_strncoll">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="_strnicoll">
+        <param type="Pc"/>
+        <param type="Pc"/>
+        <param type="I"/>
+    </function>
+    <function name="wcscat">
+        <param type="PH"/>
         <param type="PH"/>
     </function>
-    <function name="testfive">
-        <param type="PPPl"/>
-        <param type="PPH"/>
+    <function name="wcschr">
+        <param type="PH"/>
+        <param type="H"/>
     </function>
-    <function name="testsix">
-        <param type="P430"/>
-        <param type="P430"/>
+    <function name="wcscmp">
+        <param type="PH"/>
+        <param type="PH"/>
     </function>
-    <function name="testseven">
-        <param type="P430"/>
-        <param type="P431"/>
+    <function name="wcscoll">
+        <param type="PH"/>
+        <param type="PH"/>
     </function>
-    <function name="testeight">
-        <param type="434"/>
+    <function name="wcscpy">
+        <param type="PH"/>
+        <param type="PH"/>
     </function>
-    <function name="testnine">
-        <param type="P436"/>
+    <function name="wcscspn">
+        <param type="PH"/>
+        <param type="PH"/>
     </function>
-    <function name="testten"/>
+    <function name="wcslen">
+        <param type="PH"/>
+    </function>
+    <function name="wcsncat">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
+    <function name="wcsncmp">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
+    <function name="wcsncpy">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
+    <function name="wcspbrk">
+        <param type="PH"/>
+        <param type="PH"/>
+    </function>
+    <function name="wcsrchr">
+        <param type="PH"/>
+        <param type="H"/>
+    </function>
+    <function name="wcsspn">
+        <param type="PH"/>
+        <param type="PH"/>
+    </function>
+    <function name="wcsstr">
+        <param type="PH"/>
+        <param type="PH"/>
+    </function>
+    <function name="wcstok">
+        <param type="PH"/>
+        <param type="PH"/>
+    </function>
+    <function name="wcsxfrm">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
+    <function name="_wcsdup">
+        <param type="PH"/>
+    </function>
+    <function name="_wcsicmp">
+        <param type="PH"/>
+        <param type="PH"/>
+    </function>
+    <function name="_wcsicoll">
+        <param type="PH"/>
+        <param type="PH"/>
+    </function>
+    <function name="_wcslwr">
+        <param type="PH"/>
+    </function>
+    <function name="_wcsnicmp">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
+    <function name="_wcsnset">
+        <param type="PH"/>
+        <param type="H"/>
+        <param type="I"/>
+    </function>
+    <function name="_wcsrev">
+        <param type="PH"/>
+    </function>
+    <function name="_wcsset">
+        <param type="PH"/>
+        <param type="H"/>
+    </function>
+    <function name="_wcsupr">
+        <param type="PH"/>
+    </function>
+    <function name="_wcsncoll">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
+    <function name="_wcsnicoll">
+        <param type="PH"/>
+        <param type="PH"/>
+        <param type="I"/>
+    </function>
 </dll>

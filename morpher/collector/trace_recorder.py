@@ -30,6 +30,9 @@ class TraceRecorder(object):
     @ivar trace: The list of L{Snapshot} objects to turn into a L{Trace}
     @ivar limit: The number of seconds a program can run before its 
                  considered to have timed out
+    @ivar copy_limit: The max number of times a particular function call
+                      should be recorded
+    @ivar copies: A table recording the number of snapshots per function
     @ivar func_recorder: L{FuncRecorder} object used for stack capture
     '''
 
@@ -56,6 +59,10 @@ class TraceRecorder(object):
         self.trace = []
         # The number of seconds until we declare a timeout
         self.limit = cfg.getint('collector', 'timeout')
+        # The number of copies of a single function call
+        self.copy_limit = cfg.getint('collector', 'copy_limit')
+        # Table of how many snapshots of each function have been taken
+        self.copies = {}
         # Function recorder
         self.func_recorder = func_recorder.FuncRecorder(cfg, model)
     
@@ -101,6 +108,7 @@ class TraceRecorder(object):
         self.dbg.run()
         t.cancel()
         
+        self.log.info("Program terminated, recording type information")
         # Record the type information and create the Trace
         if not len(self.trace) == 0 :
             usertypes = {}
@@ -149,7 +157,8 @@ class TraceRecorder(object):
         by the debugger. It sets a breakpoint for each function whose handler
         is designated as the L{funcHandler} function, and the breakpoint
         description is set to the ordinal of the function so L{funcHandler}
-        can identify it.
+        can identify it. Each hooked function is also added to the copies
+        table so the number of times it is captured can be recorded.
         
         @param dbg: The debugger that should be used to access memory
         @type dbg: L{pydbg} object
@@ -166,17 +175,27 @@ class TraceRecorder(object):
             for node in self.model.getElementsByTagName("function") :
                 name = str(node.getAttribute("name"))
                 address = dbg.func_resolve(self.dllpath, name)
+                if address == 0x0 :
+                    msg = "Unable to resolve address for %s"
+                    self.log.error(msg, name)
+                    raise Exception(msg % name)
                 self.log.debug("Setting breakpoint: dll %s name %s address %x", dllname, name, address)
                 desc = name
                 dbg.bp_set(address, description=desc, handler=self.funcHandler)
                 self.log.debug("Breakpoint set at address %x", address)
+                self.copies[name] = 0
+                self.log.debug("Added %s to copies table", name)
         
         return defines.DBG_CONTINUE 
         
     def funcHandler(self, dbg):
         '''
         Activated upon a function call. Determines which function was called
-        and starts the snapshot process to capture the function arguments
+        and checks to see if that function has been recorded before and how
+        many times. If the function has been recorded as many times as 
+        specified in the config file (collector->copy_limit) the
+        snapshot is not captured. Otherwise this function
+        starts the snapshot process to capture the function arguments
         using the L{FuncRecorder} object. The created L{Snapshot} is 
         appended to the end of the self.trace list.
         
@@ -188,7 +207,16 @@ class TraceRecorder(object):
         '''
         self.log.debug("Breakpoint tripped, address %x", dbg.context.Eip)
         name = dbg.breakpoints[dbg.context.Eip].description
-        snap = self.func_recorder.record(dbg, name)
-        self.trace.append(snap)          
+        num_copies = self.copies[name]
+        self.log.debug("Function %s has been captured %d times before", \
+                   name, num_copies)
         
+        if num_copies < self.copy_limit :
+            self.log.info("Recording function call to %s", name)
+            snap = self.func_recorder.record(dbg, name)
+            self.trace.append(snap)  
+            self.copies[name] = num_copies + 1
+        else :
+            self.log.info("Copy limit reached for function %s, skipping", name)
+                
         return defines.DBG_CONTINUE

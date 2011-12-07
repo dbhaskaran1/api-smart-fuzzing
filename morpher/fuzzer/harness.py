@@ -96,14 +96,18 @@ class Harness(multiprocessing.Process):
         
         self.log.info("DLL loaded, waiting for trace")
         
-        # Wait for the list to be sent. By the time this happens hooks
-        # should be set and debugger ready for us to run the trace
+        # Wait for the trace to be sent over the pipe
         try :
             trace = self.inpipe.recv()
         except :
             self.log.exception("Error processing input from pipe")
             sys.exit()
             
+        self.log.info("Trace received, waiting for continuation signal")
+        
+        # Wait for signal - gives monitor chance to attach debugger
+        self.inpipe.recv()
+        self.log.info("Signal received, beginning trace replay")
         self.inpipe.close()
         
         # Take down stdout for the shared library

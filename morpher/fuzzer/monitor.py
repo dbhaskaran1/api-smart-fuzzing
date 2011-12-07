@@ -130,30 +130,15 @@ class Monitor(object):
         self.log.info("Running the harness")
         h.start()
         
-        #inpipe.close()
         self.inpipe = inpipe
-        
-        # Attach the debugger to the waiting harness
-        pid = h.pid
-        self.log.info("Attaching to harness, pid %d", pid)
-        dbg = pydbg.pydbg()
-        dbg.attach(pid)
-        dbg.set_callback(defines.EXCEPTION_ACCESS_VIOLATION, self.crash_handler)
-        dbg.set_callback(defines.USER_CALLBACK_DEBUG_EVENT, self.time_check)
-        
-        # Prepare our timeout object
-        self.log.info("Setting timeout to %d seconds", self.limit)
-        self.timed_out = False
-        t = threading.Timer(self.limit, self.timeout)
-        
+         
         if self.log.isEnabledFor(logging.DEBUG) :
             tracestr = trace.toString()
             self.log.debug("Trace %d run %d contents:\n\n%s\n", \
                            self.tracenum, self.iter, tracestr)
         
         # Send the trace
-        self.log.info("Sending trace %d run %d, releasing harness", \
-                      self.tracenum, self.iter)
+        self.log.info("Sending trace %d run %d", self.tracenum, self.iter)
         try :
             outpipe.send(trace)
         except :
@@ -161,11 +146,30 @@ class Monitor(object):
             self.log.exception(msg)
             raise Exception(msg)
         
+        # Attach the debugger to the waiting harness
+        pid = h.pid
+        self.debug.info("Stopping and attaching to harness, pid %d", pid)
+        dbg = pydbg.pydbg()
+        dbg.attach(pid)
+        dbg.set_callback(defines.EXCEPTION_ACCESS_VIOLATION, self.crash_handler)
+        dbg.set_callback(defines.USER_CALLBACK_DEBUG_EVENT, self.time_check)
+        
+        # Send continue signal
+        self.debug.info("Sending continuation flag to harness")
+        outpipe.send(True)
+        
+        # Prepare our timeout object
+        self.debug.info("Setting timeout to %d seconds", self.limit)
+        self.timed_out = False
+        t = threading.Timer(self.limit, self.timeout)
+        
         # Release the test harness
+        self.debug.info("Releasing the harness")
         t.start()
         dbg.run()
         t.cancel()
         
+        self.log.info("Harness exited, cleaning up")
         outpipe.close()
         self.inpipe.close()
         
