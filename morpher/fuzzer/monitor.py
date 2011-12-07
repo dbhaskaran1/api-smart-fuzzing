@@ -148,23 +148,23 @@ class Monitor(object):
         
         # Attach the debugger to the waiting harness
         pid = h.pid
-        self.debug.info("Stopping and attaching to harness, pid %d", pid)
+        self.log.debug("Stopping and attaching to harness, pid %d", pid)
         dbg = pydbg.pydbg()
         dbg.attach(pid)
         dbg.set_callback(defines.EXCEPTION_ACCESS_VIOLATION, self.crash_handler)
         dbg.set_callback(defines.USER_CALLBACK_DEBUG_EVENT, self.time_check)
         
         # Send continue signal
-        self.debug.info("Sending continuation flag to harness")
+        self.log.debug("Sending continuation flag to harness")
         outpipe.send(True)
         
         # Prepare our timeout object
-        self.debug.info("Setting timeout to %d seconds", self.limit)
+        self.log.debug("Setting timeout to %d seconds", self.limit)
         self.timed_out = False
         t = threading.Timer(self.limit, self.timeout)
         
         # Release the test harness
-        self.debug.info("Releasing the harness")
+        self.log.debug("Releasing the harness")
         t.start()
         dbg.run()
         t.cancel()
