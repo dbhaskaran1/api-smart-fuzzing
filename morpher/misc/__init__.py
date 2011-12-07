@@ -23,5 +23,6 @@ __all__ = \
     "config",
     "log_setup",
     "status_reporter",
-    "section_reporter"
+    "section_reporter",
+    "parallel_reporter"
 ]

@@ -3,7 +3,7 @@ Created on Oct 26, 2011
 
 @author: Rob
 '''
-from morpher.misc import config, status_reporter, section_reporter
+from morpher.misc import config, status_reporter, section_reporter, parallel_reporter
 from morpher.trace import block, memory, typemanager
 from morpher.fuzzer import harness, monitor, fuzzer, generator
 from morpher.trace import typemanager, trace, snapshot, tag
@@ -376,6 +376,40 @@ def testSectionReporter():
     sr.endSection()
     print "Done with test"
     
+def testParallelReporter():
+    sr = parallel_reporter.ParallelReporter(4)
+    sr.start("Running ParallelReporter test...")
+    first = sr.getChunk(2)
+    second = sr.getChunk(1)
+    third = sr.getChunk(5)
+    fourth = sr.getChunk(1)
+
+    time.sleep(1)
+    sr.pulseChunk(second)
+    sr.pulseChunk(fourth)
+    
+    # Now at 50%
+    time.sleep(1)
+    sr.pulseChunk(first)
+    # Now at 62.5%
+    
+    time.sleep(1)
+    sr.pulseChunk(third)
+    time.sleep(1)
+    sr.pulseChunk(third)
+    time.sleep(1)
+    sr.pulseChunk(third)
+    time.sleep(1)
+    sr.pulseChunk(third)
+    time.sleep(1)
+    sr.pulseChunk(third)
+    # Now at 87.5 %
+    time.sleep(1)
+    sr.pulseChunk(first)
+    # 99%
+    sr.done()
+    print "Done with test"
+    
 def testTypes():
     modelpath = "data\\model.xml"
     f = open(modelpath)
@@ -460,7 +494,7 @@ def testSpinner():
         time.sleep(1)
     
 if __name__ == '__main__':
-    testSpinner()
+    testParallelReporter()
     
         
     

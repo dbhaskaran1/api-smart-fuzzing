@@ -11,7 +11,7 @@ import pickle
 import monitor
 import generator
 import logging
-from morpher.misc import section_reporter
+from morpher.misc import parallel_reporter
 
 class Fuzzer(object):
     '''
@@ -120,9 +120,8 @@ class Fuzzer(object):
                     numtags += len(snap.tags)
                     
         self.log.info("Counted %s total fuzz targets across all traces", numtags)
-        sr = section_reporter.SectionReporter(numtags)
-        sr.start("  Fuzzer is running...")
-        tagnum = 1
+        self.pr = parallel_reporter.ParallelReporter(numtags)
+        self.pr.start("  Fuzzer is running...")
         for tracefile in filelist :
             # Unpickle the trace
             self.log.info("Loading new trace: %s", tracefile)
@@ -139,6 +138,7 @@ class Fuzzer(object):
                 self.monitor.run(trace)
            
             self.log.info("Trace fuzzing complete")
+        self.pr.done()
         self.log.info("All traces fuzzed. Fuzzer shutting down")
             
     def fuzzTrace(self, trace):
@@ -182,35 +182,46 @@ class Fuzzer(object):
                 # Check if this a pointer and if we're fuzzing them
                 if not self.fuzz_pointers and tag.fmt == "P" :
                     self.log.debug("Skipping pointer tag for fuzzing")
+                    mychunk = self.pr.getChunk(1)
+                    self.pr.endChunk(mychunk)
                 else :
                     self.log.debug("Fuzzing next tag in memory image")
                     # Store original value for this tag
                     (old,) = snap.mem.read(tag.addr, fmt=tag.fmt)
                     fuzzed_values = self.generator.generate(tag.fmt, old)
                     # Fuzz this tag
+                    mychunk = self.pr.getChunk(len(fuzzed_values))
                     for v in fuzzed_values :
                         # Write the fuzzed value
                         snap.mem.write(tag.addr, (v,), fmt=tag.fmt)
                         yield snap
+                        self.pr.pulseChunk(mychunk)
                     # Restore tag value
                     self.log.debug("Tag fuzzing complete, restoring value")
                     snap.mem.write(tag.addr, (old,), fmt=tag.fmt)
+                    self.pr.endChunk(mychunk)
         else :
             # Fuzz all the tags at once
             self.log.info("Fuzzing all tags simultaneously")
             remaining = {}
             orig = {}
+            chunks = {}
             for tag in snap.tags :
                 # Check if this a pointer and if we're fuzzing them
                 if not self.fuzz_pointers and tag.fmt == "P" :
                     self.log.debug("Skipping pointer tag for fuzzing")
+                    mychunk = self.pr.getChunk(1)
+                    self.pr.endChunk(mychunk)
                 else :
                     self.log.debug("Getting fuzzed values for tag")
                     # Get fuzzed values for this tag
                     (old,) = snap.mem.read(tag.addr, fmt=tag.fmt)
                     # Store the old value so it can be restored later
+                    fuzzed_values = self.generator.generate(tag.fmt, old)
                     orig[tag] = old
-                    remaining[tag] = self.generator.generate(tag.fmt, old)
+                    remaining[tag] = fuzzed_values
+                    chunks[tag] = self.pr.getChunk(len(fuzzed_values))
+                    
 
             # Iterate through every fuzzed value of every tag
             while len(remaining) > 0 :
@@ -220,9 +231,11 @@ class Fuzzer(object):
                 for (tag, values) in current :
                     # Get next fuzzed value
                     v = values.pop()
+                    self.pr.pulseChunk(chunks[tag])
                     # If that was the last value, remove the tag from list
                     if len(values) == 0 :
                         remaining.pop(tag)
+                        self.pr.endChunk(chunks[tag])
                     else :
                         remaining[tag] = values
                     # Write the fuzzed value
