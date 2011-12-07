@@ -1,13 +1,8 @@
 '''
 Created on Oct 21, 2011
 
-@author: Rob
+@author: Erik Schmidt
 '''
-
-# Remove yacctab.py
-# Remove DllExplorer config
-# Add Logging
-# Output coverage
 
 import xml.dom.minidom as xml
 import logging
@@ -85,6 +80,7 @@ class Parser(object):
             path_list += [self.compilerflags]
         path_list += self.targetfile
            
+        self.log.info("Retrieve the preprocessed code from TCC")
         pipe = Popen(path_list, stdout=PIPE, universal_newlines=True)
         text = pipe.communicate()[0]
         
@@ -94,10 +90,7 @@ class Parser(object):
         text = re.sub('#.*',"",text)
         #text = re.sub('extern \"C\"', "", text)
         
-        f = open('foo.txt', 'w')
-        f.write(text)
-        f.close()
-        
+        self.log.info("Parsing the preprocessed code using pycparser")
         parser = CParser(lex_optimize=False, yacc_debug=False, yacc_optimize=False)
     
         return parser.parse(text, self.targetfile)
@@ -127,8 +120,9 @@ class Parser(object):
             for c in ast.children():    
                 val = self.parseXML(c, func, name, printflag)
                     
-            if printflag == 1 and str(name) not in self.xmlMap:                
+            if printflag == 1:                
                 self.top.appendChild(func)
+                self.numFuncIncluded = self.numFuncIncluded + 1
             return None 
         elif funcName == "ParamList":
             # The parameter list! List all the parameters!!
@@ -137,7 +131,9 @@ class Parser(object):
                 val = self.parseXML(c, param, name, printflag)
                 if val != None:
                     if val == "":
-                        val = "P"
+                        val = "i"
+                    if val.find("[") != -1:
+                        val = val[:val.find("[")]
                     param.setAttribute("type", val)
                     element.appendChild(param) 
         elif funcName == "PtrDecl":
@@ -193,8 +189,9 @@ class Parser(object):
                     iterMap = self.typeMap[val[0]]
 
                     if iterMap in self.xmlMap and printflag == 1:
-                        self.top.appendChild(self.xmlMap[iterMap])
+                        c = self.xmlMap[iterMap]
                         del self.xmlMap[iterMap]
+                        val = self.parseXML(c, None, None, printflag)
                     return str(iterMap)
                 else:
                     return ""
@@ -205,12 +202,14 @@ class Parser(object):
                     self.typeMap[getattr(ast, ast.attr_names[0])] = val
             return None 
         elif funcName == "Struct":
-            if getattr(ast, ast.attr_names[0]) not in self.typeMap:
+            if getattr(ast, ast.attr_names[0]) in self.typeMap:
+                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
+            elif getattr(ast, ast.attr_names[0]) != None and "//" + getattr(ast, ast.attr_names[0]) in self.typeMap:
+                ind = self.typeMap["//" + getattr(ast, ast.attr_names[0])]
+            else:
                 ind = self.typeMap['#!@#index']
                 self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
-                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind)
-            else:
-                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
+                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
                 
             changed = 0
     
@@ -226,26 +225,35 @@ class Parser(object):
             for c in ast.children():
                 val = self.parseXML(c, typex, name, printflag)
                 if val != None:
-                    param = self.doc.createElement("param")
                     if val == "":
                         val = "i"
-                    param.setAttribute("type", val)
-                    typex.appendChild(param)
+                    total = 1
+                    arrays = val.split("[")
+                    if len(arrays) > 1:
+                        for i in range(len(arrays) - 1):
+                            total *= int(arrays[i+1][:-1])
+                        val = arrays[0]
+                    for i in range(total):
+                        param = self.doc.createElement("param")
+                        param.setAttribute("type", val)
+                        typex.appendChild(param)
                     changed = 1
             
-            if changed == 1:
-                self.xmlMap[str(ind)] = typex
-            if printflag == 1 and str(ind) in self.xmlMap:
-                self.top.appendChild(self.xmlMap[str(ind)])
-                del self.xmlMap[str(ind)]
+            if changed == 1 and printflag == 0:
+                self.xmlMap[str(ind)] = ast
+            if printflag == 1:
+                self.top.appendChild(typex)
                 
             return str(ind)
         elif funcName == "Union":
-            if getattr(ast, ast.attr_names[0]) not in self.typeMap:
+            if getattr(ast, ast.attr_names[0]) in self.typeMap:
+                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
+            elif getattr(ast, ast.attr_names[0]) != None and "//" + getattr(ast, ast.attr_names[0]) in self.typeMap:
+                ind = self.typeMap["//" + getattr(ast, ast.attr_names[0])]
+            else:
                 ind = self.typeMap['#!@#index']
                 self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
-            else:
-                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
+                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
                 
             changed = 0
     
@@ -261,20 +269,24 @@ class Parser(object):
             for c in ast.children():
                 val = self.parseXML(c, typex, name, printflag)
                 if val != None:
-                    param = self.doc.createElement("param")
                     if val == "":
                         val = "i"
-                    param.setAttribute("type", val)
-                    typex.appendChild(param)
-                    self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind)
+                    total = 1
+                    arrays = val.split("[")
+                    if len(arrays) > 1:
+                        for i in range(len(arrays) - 1):
+                            total *= int(arrays[i+1][:-1])
+                        val = arrays[0]
+                    for i in range(total):
+                        param = self.doc.createElement("param")
+                        param.setAttribute("type", val)
+                        typex.appendChild(param)
                     changed = 1
                     
-            if changed == 1:
-                self.xmlMap[str(ind)] = typex
-
-            if printflag == 1 and str(ind) in self.xmlMap:
-                self.top.appendChild(self.xmlMap[str(ind)])
-                del self.xmlMap[str(ind)]
+            if changed == 1 and printflag == 0:
+                self.xmlMap[str(ind)] = ast
+            if printflag == 1:
+                self.top.appendChild(typex)
                 
             return str(ind)
         elif funcName == "Enum":
@@ -282,14 +294,14 @@ class Parser(object):
         elif funcName == "Constant":
             for c in ast.children():
                 val = self.parseXML(c, element, None, printflag)
-            return ""
+            return "[" + getattr(ast, ast.attr_names[1]) + "]"
         elif funcName == "ArrayDecl":
             val = ""
             for c in ast.children():
                 getVal = self.parseXML(c, element, None, printflag)
                 if getVal != None:
                     val += getVal
-            return "P" + val
+            return val
         else:
             val = ""
             for c in ast.children():
@@ -316,6 +328,9 @@ class Parser(object):
         # Parsing is enabled
         self.log.info("Beginning parse routine")
         
+        self.numFuncIncluded = 0
+        
+        self.log.info("Getting DLL Explorer functions")
         # Retrieve the export table from the DLL
         exportlist = self.dllexp.getFunctions()
         sr.pulse()
@@ -339,8 +354,20 @@ class Parser(object):
 
         self.xmlMap = {}
     
+        self.log.info("Iterating through the AST")
         self.parseXML(ast, self.top, None, 0)
         sr.pulse()
+        self.log.info("Finished iterating through AST and generating XML content")
+            
+        self.log.info("Added %d functions out of %d possible functions in the DLL to the XML file", self.numFuncIncluded, len(exportlist))
+        
+        basedir = self.cfg.get('directories', 'basedir')
+        yaccpath = os.path.join(basedir, 'yacctab.py')
+            
+        try:
+            os.remove(yaccpath)
+        except:
+            pass
             
         # Write out the model file
         self.log.info("Writing XML tree to model file")

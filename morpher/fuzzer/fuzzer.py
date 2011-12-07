@@ -39,6 +39,7 @@ class Fuzzer(object):
     @ivar tracenum: The number identifying the current L{Trace}
     @ivar generator: The L{Generator} object used for fuzzing L{Trace} values
     @ivar monitor: The L{Monitor} object used for replaying L{Trace}s.
+    @ivar fuzz_pointers: Boolean indicating if pointers should be fuzzed
     '''
 
     def __init__(self, cfg):
@@ -54,6 +55,7 @@ class Fuzzer(object):
         self.tracenum = 0
         self.generator = generator.Generator(self.cfg)
         self.monitor = None
+        self.fuzz_pointers = True
         
     def fuzz(self):
         '''
@@ -88,9 +90,14 @@ class Fuzzer(object):
         # Set up the monitor here since it cleans directories
         self.monitor = monitor.Monitor(self.cfg)
         
+        self.fuzz_pointers = self.cfg.getboolean('fuzzer', 'fuzz_pointers')
+        self.snapshot_mode = self.cfg.get('fuzzer', 'snapshot_mode')
+        self.trace_mode = self.cfg.get('fuzzer', 'trace_mode')
+        
         # Get the stored traces
         datadir = self.cfg.get('directories', 'data')
         tracedir = os.path.join(datadir, "traces")
+        
         self.log.info("Checking trace directory for files: %s", tracedir)
         flist = os.listdir(tracedir)
         
@@ -127,28 +134,103 @@ class Fuzzer(object):
             self.monitor.setTraceNum(self.tracenum)
             self.tracenum += 1
             # Main fuzzing loop
+            for _ in self.fuzzTrace(trace) :
+                self.log.info("Sending next trace")
+                self.monitor.run(trace)
+           
+            self.log.info("Trace fuzzing complete")
+        self.log.info("All traces fuzzed. Fuzzer shutting down")
+            
+    def fuzzTrace(self, trace):
+        if self.trace_mode.lower() == "sequential" :
+            # Fuzz snapshots one at a time
+            self.log.info("Fuzzing snapshots sequentially")
             for snap in trace.snapshots :
-                self.log.info("Fuzzing next memory image in trace")
-                for tag in snap.tags :
-                    self.log.info("Fuzzing next tag in memory image")
+                self.log.debug("Fuzzing next snapshot...")
+                for _ in self.fuzzSnap(snap) :
+                    yield trace
+        else :
+            # Fuzz all the snapshots at once
+            self.log.info("Fuzzing snapshots simultaneously")
+            remaining = []
+            # Get the iterators
+            for snap in trace.snapshots :
+                remaining.append(self.fuzzSnap(snap))
+            # Run through all iterators until completed
+            while len(remaining) > 0 :
+                # Fuzz every snapshot
+                self.log.debug("Starting next round of fuzzing")
+                current = list(remaining)
+                for fuzzer in current :
+                    try :
+                        fuzzer.next()
+                    except StopIteration :
+                        remaining.remove(fuzzer)
+                # Return trace - check that at least one iterator
+                # yielded a new value (otherwise all would be removed)
+                if len(remaining) > 0 :
+                    yield trace
+                else :
+                    self.log.debug("Snapshot has been totally fuzzed")
+                
+    
+    def fuzzSnap(self, snap):
+        if self.snapshot_mode.lower() == "sequential"  :
+            # Fuzz one tag at a time
+            self.log.info("Fuzzing tags one at a time")
+            for tag in snap.tags :
+                # Check if this a pointer and if we're fuzzing them
+                if not self.fuzz_pointers and tag.fmt == "P" :
+                    self.log.debug("Skipping pointer tag for fuzzing")
+                else :
+                    self.log.debug("Fuzzing next tag in memory image")
                     # Store original value for this tag
                     (old,) = snap.mem.read(tag.addr, fmt=tag.fmt)
                     fuzzed_values = self.generator.generate(tag.fmt, old)
                     # Fuzz this tag
-                    sr.startSection(tagnum, len(fuzzed_values))
                     for v in fuzzed_values :
                         # Write the fuzzed value
                         snap.mem.write(tag.addr, (v,), fmt=tag.fmt)
-                        self.log.info("Sending new fuzzed trace to monitor")
-                        self.monitor.run(trace)
-                        sr.pulse()
+                        yield snap
                     # Restore tag value
-                    self.log.info("Tag fuzzing complete, restoring value")
+                    self.log.debug("Tag fuzzing complete, restoring value")
                     snap.mem.write(tag.addr, (old,), fmt=tag.fmt)
-                    sr.endSection()
-                    tagnum += 1
-                self.log.info("Memory image fuzzing complete")
-            self.log.info("Trace fuzzing complete")
-        self.log.info("All traces fuzzed. Fuzzer shutting down")
-            
-            
+        else :
+            # Fuzz all the tags at once
+            self.log.info("Fuzzing all tags simultaneously")
+            remaining = {}
+            orig = {}
+            for tag in snap.tags :
+                # Check if this a pointer and if we're fuzzing them
+                if not self.fuzz_pointers and tag.fmt == "P" :
+                    self.log.debug("Skipping pointer tag for fuzzing")
+                else :
+                    self.log.debug("Getting fuzzed values for tag")
+                    # Get fuzzed values for this tag
+                    (old,) = snap.mem.read(tag.addr, fmt=tag.fmt)
+                    # Store the old value so it can be restored later
+                    orig[tag] = old
+                    remaining[tag] = self.generator.generate(tag.fmt, old)
+
+            # Iterate through every fuzzed value of every tag
+            while len(remaining) > 0 :
+                # Get a fuzzed value for each tag
+                self.log.debug("Performing next round of tag fuzzing")
+                current = list(remaining.items())
+                for (tag, values) in current :
+                    # Get next fuzzed value
+                    v = values.pop()
+                    # If that was the last value, remove the tag from list
+                    if len(values) == 0 :
+                        remaining.pop(tag)
+                    else :
+                        remaining[tag] = values
+                    # Write the fuzzed value
+                    snap.mem.write(tag.addr, (v,), fmt=tag.fmt)
+                # Return the fuzzed snapshot
+                yield snap
+
+            # Done fuzzing, restore the snapshot
+            self.log.debug("All tags fuzzed, restoring snapshot")
+            for (tag, value) in orig.items() :
+                snap.mem.write(tag.addr, (value,), fmt=tag.fmt)
