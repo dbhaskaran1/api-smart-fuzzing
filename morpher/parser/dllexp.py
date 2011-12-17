@@ -28,7 +28,7 @@ class DllExp(object):
     def getFunctions(self):
         '''
         Runs the dllexp.exe tool to pull the export table from the target DLL.
-        Returns a list of (funcname, ordinal, rel_addr) tuples - (string, int, int)
+        Returns a list of (funcname, ordinal) tuples - (string, int, int)
         '''
         # Retrieve configuration info
         dllpath = self.cfg.get('fuzzer', 'target')
@@ -59,7 +59,7 @@ class DllExp(object):
         filefmt = ['name','addr_abs', 'addr_rel', 'ordinal', 'dll', 'path', 'type']
         result = csv.DictReader(f, filefmt) 
         # Ordinal is printed as '1 (0x1)', so just take first part
-        l = [(r['name'], int(r['ordinal'].split()[0]), int(r['addr_rel'], 16)) for r in result]
+        l = [(r['name'], int(r['ordinal'].split()[0]) ) for r in result]
         f.close()
         
         self.log.info("Found %d exported function entries", len(l))

@@ -174,7 +174,7 @@ class TraceRecorder(object):
             self.log.info("Setting breakpoints for dll %s", dllname)
             for node in self.model.getElementsByTagName("function") :
                 name = str(node.getAttribute("name"))
-                address = dbg.func_resolve(self.dllpath, name)
+                address = dbg.func_resolve(last_dll.path, name)
                 if address == 0x0 :
                     msg = "Unable to resolve address for %s"
                     self.log.error(msg, name)

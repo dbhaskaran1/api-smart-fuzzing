@@ -347,7 +347,7 @@ class Parser(object):
         self.typeMap['#!@#index'] = 1
         
         self.text = {}
-        for (fname, _, _) in exportlist :
+        for (fname, _) in exportlist :
             self.text[fname] = 1
 
         sr.pulse()    
