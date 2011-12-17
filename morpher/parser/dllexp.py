@@ -59,7 +59,8 @@ class DllExp(object):
         filefmt = ['name','addr_abs', 'addr_rel', 'ordinal', 'dll', 'path', 'type']
         result = csv.DictReader(f, filefmt) 
         # Ordinal is printed as '1 (0x1)', so just take first part
-        l = [(r['name'], int(r['ordinal'].split()[0]) ) for r in result]
+        l = [(r['name']) for r in result]
+
         f.close()
         
         self.log.info("Found %d exported function entries", len(l))

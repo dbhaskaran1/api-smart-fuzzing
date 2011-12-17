@@ -187,10 +187,12 @@ class Parser(object):
                     return "f"
                 elif val[0] in self.typeMap:
                     iterMap = self.typeMap[val[0]]
-
-                    if iterMap in self.xmlMap and printflag == 1:
-                        c = self.xmlMap[iterMap]
-                        del self.xmlMap[iterMap]
+                    iterPMap = iterMap
+                    if iterMap.rfind("P") != -1:
+                        iterPMap = iterMap[iterMap.rfind("P")+1:]
+                    if iterPMap in self.xmlMap and printflag == 1:
+                        c = self.xmlMap[iterPMap]
+                        del self.xmlMap[iterPMap]
                         val = self.parseXML(c, None, None, printflag)
                     return str(iterMap)
                 else:
@@ -210,7 +212,7 @@ class Parser(object):
                 ind = self.typeMap['#!@#index']
                 self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
                 self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
-                
+            
             changed = 0
     
             typex = self.doc.createElement("usertype")
@@ -347,7 +349,8 @@ class Parser(object):
         self.typeMap['#!@#index'] = 1
         
         self.text = {}
-        for (fname, _) in exportlist :
+
+        for (fname) in exportlist :
             self.text[fname] = 1
 
         sr.pulse()    
