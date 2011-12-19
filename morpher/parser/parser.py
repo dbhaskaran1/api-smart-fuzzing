@@ -387,4 +387,4 @@ class Parser(object):
             raise Exception(msg % modelpath)
         self.top.writexml(f, addindent="    ", newl="\n")
         f.close()
-        sr.pulse()
+        sr.done()

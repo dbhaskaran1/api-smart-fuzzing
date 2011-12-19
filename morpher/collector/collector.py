@@ -131,6 +131,7 @@ class Collector(object):
                 self.counter += 1
             sr.pulse()
         
+        sr.done()
         self.log.info("Collection process complete")
       
     def parseline(self,line):
@@ -156,7 +157,7 @@ class Collector(object):
         # Keep adding tokens until we have a string that is an actual path
         exepath = ""
         for i in range(0, len(strings)) :
-            exepath += strings[i]
+            exepath += strings[i] + " "
             if os.path.isfile(exepath) :
                 # Concatenate the remaining tokens and return as arg string
                 args = ""

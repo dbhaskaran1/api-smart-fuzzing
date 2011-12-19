@@ -123,6 +123,16 @@ class TraceRecorder(object):
         else :
             newtrace = None
             
+        # Record some collection stats
+        possible = 0
+        seen = 0
+        for copies in self.copies.values() :
+            possible += 1
+            if copies > 0 :
+                seen += 1
+                
+        self.log.info("Saw %d unique function calls out of %d collectable functions", seen, possible)
+                
         return newtrace
     
     def checkTimeout(self, dbg):
@@ -181,11 +191,14 @@ class TraceRecorder(object):
                     raise Exception(msg % name)
                 self.log.debug("Setting breakpoint: dll %s name %s address %x", dllname, name, address)
                 desc = name
-                dbg.bp_set(address, description=desc, handler=self.funcHandler)
-                self.log.debug("Breakpoint set at address %x", address)
-                self.copies[name] = 0
-                self.log.debug("Added %s to copies table", name)
-        
+                try :
+                    dbg.bp_set(address, description=desc, handler=self.funcHandler)
+                    self.log.debug("Breakpoint set at address %x", address)
+                    self.copies[name] = 0
+                    self.log.debug("Added %s to copies table", name)
+                except :
+                    self.log.exception("Couldn't set breakpoint")
+                
         return defines.DBG_CONTINUE 
         
     def funcHandler(self, dbg):
