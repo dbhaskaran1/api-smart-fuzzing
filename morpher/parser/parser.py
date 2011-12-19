@@ -61,7 +61,9 @@ class Parser(object):
         
         self.compiler = self.cfg.get('parser', 'precomppath')
         
-        self.compilerflags = self.cfg.get('parser', 'compflags')
+        tmp = self.cfg.get('parser', 'compflags')
+        self.compilerflags = tmp.split(';')
+        #self.compilerflags = self.cfg.get('parser', 'compflags')
 
     def parse_file(self):
         ''' 
@@ -81,33 +83,66 @@ class Parser(object):
         @rtype: L{Node} object
         '''
   
-        
+        # Generate the command line string to generate the preprocessed data       
         path_list = [self.compiler]
-        if isinstance(self.compilerflags, list):
-            path_list += self.compilerflags
-        elif self.compilerflags != '': 
-            path_list += [self.compilerflags]
+        #if isinstance(self.compilerflags, list):
+        #    path_list += self.compilerflags
+        #elif self.compilerflags != '': 
+        #    path_list += [self.compilerflags]
+        path_list += self.compilerflags
         path_list += self.targetfile
            
+        # Open a pipe and generate the preprocessed data
         self.log.info("Retrieve the preprocessed code from TCC")
         pipe = Popen(path_list, stdout=PIPE, universal_newlines=True)
         text = pipe.communicate()[0]
         
-        # Make the output pycparser compatible
+        # Make the output pycparser compatible by removing __stdcall instances and attributes
         text = re.sub('__stdcall',"",text)
         text = re.sub('__attribute__\(\(.*?\)\)*',"",text)
-        #text = re.sub('#.*',"",text)
-        #text = re.sub('extern \"C\"', "", text)
         
+        f = open("foo.txt", "w")
+        f.write(text)
+        f.close()
+        
+        # Using pycparser, generate the preprocessed code and return the AST
         self.log.info("Parsing the preprocessed code using pycparser")
         parser = CParser(lex_optimize=False, yacc_debug=False, yacc_optimize=False)
     
         return parser.parse(text, self.targetfile)
 
     def parseXML(self, ast, element, name, printflag):
-        """ 
-            Fill in data!!
-        """
+        ''' 
+        Parse the Abstract Syntax Tree and generate the XML Model
+        
+        This is a recursive function that iteratively traverses the abstract syntax tree. The
+        current L{Node}, defined by the ast argument, is used to gather the type info if 
+        appropriate, and the name of the node. 
+        
+        If the current node is a Struct or a Union, it saves the L{Node} to return later if 
+        the Struct or Union is actually used in the target file. 
+        
+        If the current L{Node} is a function definition, and the function is located in the 
+        target header file, it sets the printflag to true, and recalls the parseXML file for the 
+        stored instance of the struct or union definition. It then adds the user defined instances, 
+        and all other newly defined user defined instances to the XML model. 
+        
+        If the current L{Node} is a typedef definition, it maps the definition to the type it 
+        points to, and will return the resolved type on any future calls. Typedefs are not added 
+        to the XML model. They are handled internally.
+        
+        @param ast: The current L{Node} of the Abstract Syntax Tree
+        @type ast: L{Node} object
+        @param element: The current XML instance pertaining to the sub-tree
+        @type element: XML element object
+        @param name: Only relevant for function definitions, as the names are defined in a parent node. Used to assign the name of the function definition in the XML Model
+        @type name: string
+        @param printflag: Flag defining whether to add XML instance to the XML model
+        @type printflag: int
+        
+        @return: A string containing relevant data for the parent node of the AST
+        @rtype: string
+        '''
     
         funcName = ast.__class__.__name__
     
@@ -118,17 +153,21 @@ class Parser(object):
                 return val
         elif funcName == "FuncDecl":
             # Function Declaration - Take input from the Decl node for the name, and explore all sub-nodes
+            # The parameters are added to the XML map, but the return value is ignored
             func = self.doc.createElement("function")
             func.setAttribute("name", name)
 
+            # Set the printflag if the function is in the target header file
             if str(name) in self.text:
                 printflag |= 1
             else:
                 printflag |= 0  
                   
+            # Explore the child nodes (to get the parameters)
             for c in ast.children():    
-                val = self.parseXML(c, func, name, printflag)
+                val = self.parseXML(c, func, None, printflag)
                     
+            # If the printflag is set, add the function to the XML model
             if printflag == 1:                
                 self.top.appendChild(func)
                 self.numFuncIncluded = self.numFuncIncluded + 1
@@ -137,30 +176,41 @@ class Parser(object):
             # The parameter list! List all the parameters!!
             for c in ast.children():
                 param = self.doc.createElement("param")
+                # Get the string representation for the type of the current parameter
+                # This will also implicitly add the new user defined types for 
+                # the function if the printflag is enabled
                 val = self.parseXML(c, param, name, printflag)
                 if val != None:
                     if val != "":
+                        # Remove the array size if applicable
                         if val.find("[") != -1:
                             val = val[:val.find("[")]
                         param.setAttribute("type", val)
                         element.appendChild(param) 
         elif funcName == "PtrDecl":
+            # A pointer definition. Get the string representation of the children,
+            # and append a P to the string!
             for c in ast.children():
                 val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     return "P" + val
         elif funcName == "TypeDecl":
+            # Definition of a type - pass through this function
             for c in ast.children():
                 val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     return val
         elif funcName == "Typename":
+            # Name of a type - pass through this function
             for c in ast.children():
                 val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     return val
         elif funcName == "IdentifierType":
+            # The identifier of a basic data type (or previously defined user defined type)
             val = getattr(ast, ast.attr_names[0])
+            
+            # Return the character code for a basic type
             if len(val) > 2:
                 if val[0] == "unsigned" and val[1] == "long" and val[2] == "long":
                     return "L"
@@ -198,45 +248,135 @@ class Parser(object):
                     return "d"
                 elif val[0] == "float":
                     return "f"
+                
+                # If a user defined type, get the character code, add to the XML
+                # model if pertinent, and add any new unique user defined types 
+                # defined in the user defined type.
                 elif val[0] in self.typeMap:
                     iterMap = self.typeMap[val[0]]
                     iterPMap = iterMap
                     if iterMap.rfind("P") != -1:
                         iterPMap = iterMap[iterMap.rfind("P")+1:]
+                    if iterPMap == "482":
+                        print("482!! Part 2 " + str(printflag) + " is in? " + str(iterPMap in self.xmlMap))
                     if iterPMap in self.xmlMap and printflag == 1:
                         c = self.xmlMap[iterPMap]
                         del self.xmlMap[iterPMap]
                         val = self.parseXML(c, None, None, printflag)
                     return str(iterMap)
+                # If not defined anywhere, then return no value
                 else:
                     return ""
         elif funcName == "Typedef":
+            # If a typedef, store the string code associated to the value to the 
+            # typeMap for future resolutions.
             for c in ast.children():
                 val = self.parseXML(c, element, name, printflag)
                 if val != None:
                     self.typeMap[getattr(ast, ast.attr_names[0])] = val
             return None 
-        elif funcName == "Struct":
-            if getattr(ast, ast.attr_names[0]) in self.typeMap:
-                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
-            elif getattr(ast, ast.attr_names[0]) != None and "//" + getattr(ast, ast.attr_names[0]) in self.typeMap:
-                ind = self.typeMap["//" + getattr(ast, ast.attr_names[0])]
+#        elif funcName == "Struct":
+#            # Generate a unique usertype id if new, or set the index to the previously
+#            # assigned usertype id
+#            if getattr(ast, ast.attr_names[0]) in self.typeMap:
+#                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
+#            elif getattr(ast, ast.attr_names[0]) != None and "//" + getattr(ast, ast.attr_names[0]) in self.typeMap:
+#                ind = self.typeMap["//" + getattr(ast, ast.attr_names[0])]
+#            else:
+#                ind = self.typeMap['#!@#index']
+#                self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
+#                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
+#            
+#            changed = 0
+#    
+#            # Set the parameters for the XML model for a user defined type
+#            typex = self.doc.createElement("usertype")
+#            typex.setAttribute("id", str(ind))
+#            typex.setAttribute("type", "struct")
+#            
+#            if str(getattr(ast, ast.attr_names[0])) in self.text:
+#                print("printflag!!")
+#                printflag |= 1
+#            else:
+#                printflag |= 0
+#                  
+#            # Iterate through the children of the struct to add them to the XML model
+#            for c in ast.children():
+#                val = self.parseXML(c, typex, name, printflag)
+#                if val != None:
+#                    if val != "":
+#                        total = 1
+#                        arrays = val.split("[")
+#                        if len(arrays) > 1:
+#                            for i in range(len(arrays) - 1):
+#                                total *= int(arrays[i+1][:-1])
+#                            val = arrays[0]
+#                        for i in range(total):
+#                            param = self.doc.createElement("param")
+#                            param.setAttribute("type", val)
+#                            typex.appendChild(param)
+#                        changed = 1
+#            
+#            # If the current struct isn't supposed to be printed, add it to the
+#            # map which contains pointers to structs to print later. Otherwise, 
+#            # if the printflag is set, add to the XML model
+#            
+#            if ind == 482:
+#                print("482!!! " + str(printflag) + " changed " + str(changed))
+#            
+#            if changed == 1 and printflag == 0:
+#                self.xmlMap[str(ind)] = ast
+#            if printflag == 1:
+#                self.top.appendChild(typex)
+#                
+#            # Return the string represntation of the struct index
+#            if changed == 1:
+#                return str(ind)
+#            else:
+#                return ""
+        elif funcName == "Union" or funcName == "Struct":
+            # Union is pretty much the same as Struct. To see how it works, check 
+            # out the struct and its comments
+            # Generate a unique usertype id if new, or set the index to the previously
+            # assigned usertype id
+            if name == None:
+                curname = getattr(ast, ast.attr_names[0])
+            else:
+                curname = name 
+            
+            if curname == None:
+                return None
+            
+            if curname in self.typeMap:
+                ind = self.typeMap[curname]
+            elif curname != None and "//" + curname in self.typeMap:
+                ind = self.typeMap["//" + curname]
             else:
                 ind = self.typeMap['#!@#index']
                 self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
-                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
+                self.typeMap[curname] = str(ind) 
+            
+            #print(str(ind))
             
             changed = 0
     
+            # Set the parameters for the XML model for a user defined type
             typex = self.doc.createElement("usertype")
             typex.setAttribute("id", str(ind))
-            typex.setAttribute("type", "struct")
+            if funcName == "Union":
+                typex.setAttribute("type", "union")
+            elif funcName == "Struct":
+                typex.setAttribute("type", "struct")
             
-            if str(getattr(ast, ast.attr_names[0])) in self.text:
+            #print(curname)
+            
+            if str(curname) in self.text:
+                print("printflag!!")
                 printflag |= 1
             else:
                 printflag |= 0
                   
+            # Iterate through the children of the struct to add them to the XML model
             for c in ast.children():
                 val = self.parseXML(c, typex, name, printflag)
                 if val != None:
@@ -253,62 +393,30 @@ class Parser(object):
                             typex.appendChild(param)
                         changed = 1
             
+            # If the current struct isn't supposed to be printed, add it to the
+            # map which contains pointers to structs to print later. Otherwise, 
+            # if the printflag is set, add to the XML model
             if changed == 1 and printflag == 0:
                 self.xmlMap[str(ind)] = ast
             if printflag == 1:
                 self.top.appendChild(typex)
                 
-            return str(ind)
-        elif funcName == "Union":
-            if getattr(ast, ast.attr_names[0]) in self.typeMap:
-                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
-            elif getattr(ast, ast.attr_names[0]) != None and "//" + getattr(ast, ast.attr_names[0]) in self.typeMap:
-                ind = self.typeMap["//" + getattr(ast, ast.attr_names[0])]
+            # Return the string represntation of the struct index
+            if changed == 1:
+                return str(ind)
             else:
-                ind = self.typeMap['#!@#index']
-                self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
-                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
-                
-            changed = 0
-    
-            typex = self.doc.createElement("usertype")
-            typex.setAttribute("id", str(ind))
-            typex.setAttribute("type", "union")
-            
-            if str(getattr(ast, ast.attr_names[0])) in self.text:
-                printflag |= 1
-            else:
-                printflag |= 0             
-            
-            for c in ast.children():
-                val = self.parseXML(c, typex, name, printflag)
-                if val != None:
-                    if val != "":
-                        total = 1
-                        arrays = val.split("[")
-                        if len(arrays) > 1:
-                            for i in range(len(arrays) - 1):
-                                total *= int(arrays[i+1][:-1])
-                            val = arrays[0]
-                        for i in range(total):
-                            param = self.doc.createElement("param")
-                            param.setAttribute("type", val)
-                            typex.appendChild(param)
-                        changed = 1
-                    
-            if changed == 1 and printflag == 0:
-                self.xmlMap[str(ind)] = ast
-            if printflag == 1:
-                self.top.appendChild(typex)
-                
-            return str(ind)
+                return ""
         elif funcName == "Enum":
+            # Enum type - only the size of an integer
             return "i"
         elif funcName == "Constant":
+            # Constant type - used only to define sizes of arrays
             for c in ast.children():
                 val = self.parseXML(c, element, None, printflag)
             return "[" + getattr(ast, ast.attr_names[1]) + "]"
         elif funcName == "ArrayDecl":
+            # Array declaration. Get the array type and size, and return string
+            # representation to parent
             val = ""
             for c in ast.children():
                 getVal = self.parseXML(c, element, None, printflag)
@@ -322,10 +430,16 @@ class Parser(object):
             return val
 
     def parse(self):
+        ''' 
+        Analyzes the target DLL and header file to retrieve function prototypes. 
+        Outputs a XML file containing a model of the exported prototypes.
+        
+        It will start by generating an Abstract Syntax Tree (AST) representation of the
+        target header files. Then iterate through the AST and pull out relevant 
+        function and user defined type definitions and add them to an XML model. It will 
+        then export the XML model to a file and terminate.
         '''
-        Analyzes the target DLL and header file to retrieve function prototypes.
-        Outputs a XML file containing a model of the exported prototypes
-        '''
+        
         # Get relevant configuration information
         datadir = self.cfg.get('directories', 'data')
         modelpath = os.path.join(datadir, 'model.xml')
@@ -361,6 +475,7 @@ class Parser(object):
         
         self.text = {}
 
+        # Create a map of the exported function names of the DLL
         for (fname) in exportlist :
             self.text[fname] = 1
 
@@ -368,8 +483,13 @@ class Parser(object):
 
         self.xmlMap = {}
     
+        # Iterate through the AST and generate the XML model
         self.log.info("Iterating through the AST")
         self.parseXML(ast, self.top, None, 0)
+        
+        f = open("foo1.txt" , "w")
+        ast.show(f)
+        f.close()
         sr.pulse()
         self.log.info("Finished iterating through AST and generating XML content")
             
@@ -378,6 +498,7 @@ class Parser(object):
         basedir = self.cfg.get('directories', 'basedir')
         yaccpath = os.path.join(basedir, 'yacctab.py')
             
+        # Remove temporary files
         try:
             os.remove(yaccpath)
         except:

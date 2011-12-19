@@ -1,7 +1,11 @@
 '''
-Created on Oct 25, 2011
+Contains the L{DllExp} class which is a python wrapper
+for the external DllExplorer Tool.
 
-@author: Rob
+@author: Erik Schmidt
+@contact: emschmitty@gmail.com
+@organization: Carnegie Mellon University
+@since: October 23, 2011
 '''
 import subprocess
 import os
@@ -10,12 +14,18 @@ import logging
 
 class DllExp(object):
     '''
-    Acts as a front-end to call the DLL Explorer (dllexp.exe) tool
+    Class documentation
+    
+    @ivar cfg: The L{Config} object
+    @ivar log: The L{logging} object
     '''
 
     def __init__ (self, cfg):
         '''
-        init documentation
+        Stores the configuration object and initializes the internal data
+        
+        @param cfg: The configuration object to use
+        @type cfg: L{Config} object
         '''
         # The Config object used for configuration info
         self.cfg = cfg
@@ -26,9 +36,17 @@ class DllExp(object):
         self.toolpath = os.path.join(tools, 'dllexp.exe')
         
     def getFunctions(self):
-        '''
-        Runs the dllexp.exe tool to pull the export table from the target DLL.
-        Returns a list of (funcname, ordinal) tuples - (string, int)
+        ''' 
+        Generates a list of exported functions from the target DLL using the 
+        DllExplorer tool.
+        
+        This function calls an instance of DllExplorer, which output a list of 
+        function definitions to a .csv file. It then opens and parses the file, 
+        adding the information to an array of string which is then returned to 
+        calling function.
+        
+        @return: An array of exported function names
+        @rtype: string array
         '''
         # Retrieve configuration info
         dllpath = self.cfg.get('fuzzer', 'target')
@@ -58,7 +76,7 @@ class DllExp(object):
         self.log.info("Parsing the CSV file written by dllexp.exe")
         filefmt = ['name','addr_abs', 'addr_rel', 'ordinal', 'dll', 'path', 'type']
         result = csv.DictReader(f, filefmt) 
-        # Ordinal is printed as '1 (0x1)', so just take first part
+        # Grab the name and add it to the array
         l = [(r['name']) for r in result]
 
         f.close()
