@@ -87,13 +87,10 @@ class ParallelReporter(status_reporter.StatusReporter):
         
         # Calculate new percentage
         old = (current*100)/(maxevents)
-        oldtotal = (old)/(self.numsections)
+        oldtotal = (old)/(self.numchunks)
         
         new = (newtotal*100)/(maxevents)
-        newtotal = (new)/(self.numsections)
-        
-        self.percentage += (newtotal - oldtotal)
-        
+        newtotal = (new)/(self.numchunks)
         if self.percentage >= 100 : 
             self.percentage = 99
             
@@ -101,11 +98,11 @@ class ParallelReporter(status_reporter.StatusReporter):
         
     def endChunk(self, chunk):
         '''
-        Ends this section, setting this section to be 100% complete
+        Ends this chunk, setting this chunk to be 100% complete
         and updating the status bar to reflect that.
         
-        @param section: The chunk id to finish
-        @type section: integer
+        @param chunk: The chunk id to finish
+        @type chunk: integer
         '''
         (current, total) = self.table[chunk]
         self.pulseChunk(chunk, total - current)
