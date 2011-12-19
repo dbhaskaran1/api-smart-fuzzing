@@ -56,7 +56,7 @@ class ParallelReporter(status_reporter.StatusReporter):
         @return: The id of the next available chunk
         @rtype: integer
         '''
-        if self.nextchunk == self.numchunk :
+        if self.nextchunk == self.numchunks :
             return None
         
         mychunk = self.nextchunk
