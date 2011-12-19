@@ -87,7 +87,7 @@ class Parser(object):
         # Make the output pycparser compatible
         text = re.sub('__stdcall',"",text)
         text = re.sub('__attribute__\(\(.*?\)\)*',"",text)
-        text = re.sub('#.*',"",text)
+        #text = re.sub('#.*',"",text)
         #text = re.sub('extern \"C\"', "", text)
         
         self.log.info("Parsing the preprocessed code using pycparser")
@@ -130,12 +130,11 @@ class Parser(object):
                 param = self.doc.createElement("param")
                 val = self.parseXML(c, param, name, printflag)
                 if val != None:
-                    if val == "":
-                        val = "i"
-                    if val.find("[") != -1:
-                        val = val[:val.find("[")]
-                    param.setAttribute("type", val)
-                    element.appendChild(param) 
+                    if val != "":
+                        if val.find("[") != -1:
+                            val = val[:val.find("[")]
+                        param.setAttribute("type", val)
+                        element.appendChild(param) 
         elif funcName == "PtrDecl":
             for c in ast.children():
                 val = self.parseXML(c, element, name, printflag)
@@ -153,6 +152,9 @@ class Parser(object):
                     return val
         elif funcName == "IdentifierType":
             val = getattr(ast, ast.attr_names[0])
+            if len(val) > 2:
+                if val[0] == "unsigned" and val[1] == "long" and val[2] == "long":
+                    return "L"
             if len(val) > 1:
                 if val[0] == "char" and val[1] == "unsigned":
                     return "B"
@@ -169,6 +171,8 @@ class Parser(object):
                 elif val[0] == "int" and val[1] == "signed":
                     return "i"
                 elif val[0] == "long" and (val[1] == "signed"):
+                    return "l"
+                elif val[0] == "long" and val[1] == "long":
                     return "l"
                 else:
                     return ""
@@ -227,19 +231,18 @@ class Parser(object):
             for c in ast.children():
                 val = self.parseXML(c, typex, name, printflag)
                 if val != None:
-                    if val == "":
-                        val = "i"
-                    total = 1
-                    arrays = val.split("[")
-                    if len(arrays) > 1:
-                        for i in range(len(arrays) - 1):
-                            total *= int(arrays[i+1][:-1])
-                        val = arrays[0]
-                    for i in range(total):
-                        param = self.doc.createElement("param")
-                        param.setAttribute("type", val)
-                        typex.appendChild(param)
-                    changed = 1
+                    if val != "":
+                        total = 1
+                        arrays = val.split("[")
+                        if len(arrays) > 1:
+                            for i in range(len(arrays) - 1):
+                                total *= int(arrays[i+1][:-1])
+                            val = arrays[0]
+                        for i in range(total):
+                            param = self.doc.createElement("param")
+                            param.setAttribute("type", val)
+                            typex.appendChild(param)
+                        changed = 1
             
             if changed == 1 and printflag == 0:
                 self.xmlMap[str(ind)] = ast
@@ -271,19 +274,18 @@ class Parser(object):
             for c in ast.children():
                 val = self.parseXML(c, typex, name, printflag)
                 if val != None:
-                    if val == "":
-                        val = "i"
-                    total = 1
-                    arrays = val.split("[")
-                    if len(arrays) > 1:
-                        for i in range(len(arrays) - 1):
-                            total *= int(arrays[i+1][:-1])
-                        val = arrays[0]
-                    for i in range(total):
-                        param = self.doc.createElement("param")
-                        param.setAttribute("type", val)
-                        typex.appendChild(param)
-                    changed = 1
+                    if val != "":
+                        total = 1
+                        arrays = val.split("[")
+                        if len(arrays) > 1:
+                            for i in range(len(arrays) - 1):
+                                total *= int(arrays[i+1][:-1])
+                            val = arrays[0]
+                        for i in range(total):
+                            param = self.doc.createElement("param")
+                            param.setAttribute("type", val)
+                            typex.appendChild(param)
+                        changed = 1
                     
             if changed == 1 and printflag == 0:
                 self.xmlMap[str(ind)] = ast
