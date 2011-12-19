@@ -40,6 +40,8 @@ class Monitor(object):
     @ivar hangpath: The path to the "hangers" directory
     @ivar crashpath: The path to the "crashers" directory
     @ivar last_trace: The last L{Trace} object sent to a L{Harness}
+    @ivar save_traces: Whether or not to save crashing and hanging
+                      traces in replayable pickle format
     '''
 
     def __init__(self, cfg):
@@ -83,6 +85,8 @@ class Monitor(object):
                     shutil.rmtree(path)
         else :
             os.mkdir(self.crashpath)
+        # Check if crashs/hangs should be stored in replayable format
+        self.save_traces = self.cfg.getBoolean('fuzzer', 'save_traces')
         # Stores the trace we just sent so we can dump it if needed
         self.last_trace = None
         
@@ -221,11 +225,13 @@ class Monitor(object):
                 f.write(s.toString() + "\n")
             f.close()
             # Dump the trace
-            filename = "trace-%d-run-%d.pkl" % (self.tracenum, self.iter)
-            dumpfile = os.path.join(self.hangpath, filename)
-            f = open(dumpfile, "wb")
-            pickle.dump(self.last_trace, f)
-            f.close()
+            if self.save_traces :
+                filename = "trace-%d-run-%d.pkl" % (self.tracenum, self.iter)
+                dumpfile = os.path.join(self.hangpath, filename)
+                f = open(dumpfile, "wb")
+                pickle.dump(self.last_trace, f)
+                f.close()
+            
             # Terminate the process
             self.log.info("!!! Harness timed out !!!")
             self.log.info("Terminating harness")
@@ -288,10 +294,11 @@ class Monitor(object):
         f.close()
         
         # Dump the trace in pickle format
-        dumpfile = os.path.join(dirpath, "trace-%d-run-%d.pkl" % (self.tracenum, self.iter))
-        f = open(dumpfile, "wb")
-        pickle.dump(self.last_trace, f)
-        f.close()
+        if self.save_traces :
+            dumpfile = os.path.join(dirpath, "trace-%d-run-%d.pkl" % (self.tracenum, self.iter))
+            f = open(dumpfile, "wb")
+            pickle.dump(self.last_trace, f)
+            f.close()
                 
         # Done reporting, terminate the harness
         self.log.info("Terminating the test harness")

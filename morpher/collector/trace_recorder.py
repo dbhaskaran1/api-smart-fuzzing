@@ -94,6 +94,7 @@ class TraceRecorder(object):
         self.log.info("Running collection line: exe - %s  arg - %s", exe, arg)
         # Clear the trace recording
         self.trace = []
+        self.copies = {}
         # Load the application in a debugger
         self.log.info("Loaded program, setting breakpoints")
         self.dbg = pydbg.pydbg()
@@ -149,9 +150,10 @@ class TraceRecorder(object):
         '''
         if self.timed_out :
             # Terminate the process
-            self.log.info("!!! Harness timed out !!!")
-            self.log.info("Terminating harness")
+            self.log.info("Trace recorder timed out")
+            self.log.info("Terminating recorded application")
             dbg.terminate_process() 
+            self.timed_out = False
     
     def timeoutHandler(self):
         '''
@@ -160,6 +162,7 @@ class TraceRecorder(object):
         of the currently running program.
         '''
         self.timed_out = True
+        self.log.debug("Timeout handler triggered")
         
     def loadHandler(self, dbg):
         '''
