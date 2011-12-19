@@ -32,7 +32,9 @@ class TraceRecorder(object):
                  considered to have timed out
     @ivar copy_limit: The max number of times a particular function call
                       should be recorded
+    @ivar global_limit: Whether the copy limit is across all traces
     @ivar copies: A table recording the number of snapshots per function
+    @ivar collected: Set containing all functions recorded by this object
     @ivar func_recorder: L{FuncRecorder} object used for stack capture
     '''
 
@@ -61,6 +63,8 @@ class TraceRecorder(object):
         self.limit = cfg.getint('collector', 'timeout')
         # The number of copies of a single function call
         self.copy_limit = cfg.getint('collector', 'copy_limit')
+        # Whether this is a global limit or per-trace
+        self.global_limit = cfg.getboolean('collector', 'global_limit')
         # Table of how many snapshots of each function have been taken
         self.copies = {}
         # Set of unique functions recorded
@@ -94,7 +98,8 @@ class TraceRecorder(object):
         self.log.info("Running collection line: exe - %s  arg - %s", exe, arg)
         # Clear the trace recording
         self.trace = []
-        self.copies = {}
+        if not self.global_limit :
+            self.copies = {}
         # Load the application in a debugger
         self.log.info("Loaded program, setting breakpoints")
         self.dbg = pydbg.pydbg()
@@ -135,7 +140,7 @@ class TraceRecorder(object):
                 seen += 1
                 self.collected.add(func)
              
-        self.log.info("Saw %d unique function calls out of %d collectable functions", seen, possible)
+        self.log.info("Collected %d unique function calls out of %d collectable functions", seen, possible)
                 
         return newtrace
     
@@ -200,8 +205,9 @@ class TraceRecorder(object):
                 try :
                     dbg.bp_set(address, description=desc, handler=self.funcHandler)
                     self.log.debug("Breakpoint set at address %x", address)
-                    self.copies[name] = 0
-                    self.log.debug("Added %s to copies table", name)
+                    if not self.copies.has_key(name) :
+                        self.copies[name] = 0
+                        self.log.debug("Added %s to copies table", name)
                 except :
                     self.log.warning("Couldn't set breakpoint in dll %s at address %x", dllname, address)
                 
