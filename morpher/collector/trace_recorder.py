@@ -63,6 +63,8 @@ class TraceRecorder(object):
         self.copy_limit = cfg.getint('collector', 'copy_limit')
         # Table of how many snapshots of each function have been taken
         self.copies = {}
+        # Set of unique functions recorded
+        self.collected = set()
         # Function recorder
         self.func_recorder = func_recorder.FuncRecorder(cfg, model)
     
@@ -126,11 +128,12 @@ class TraceRecorder(object):
         # Record some collection stats
         possible = 0
         seen = 0
-        for copies in self.copies.values() :
+        for (func, copies) in self.copies.items() :
             possible += 1
             if copies > 0 :
                 seen += 1
-                
+                self.collected.add(func)
+             
         self.log.info("Saw %d unique function calls out of %d collectable functions", seen, possible)
                 
         return newtrace
@@ -197,7 +200,7 @@ class TraceRecorder(object):
                     self.copies[name] = 0
                     self.log.debug("Added %s to copies table", name)
                 except :
-                    self.log.exception("Couldn't set breakpoint")
+                    self.log.warning("Couldn't set breakpoint in dll %s at address %x", dllname, address)
                 
         return defines.DBG_CONTINUE 
         

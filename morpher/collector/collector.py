@@ -131,6 +131,12 @@ class Collector(object):
                 self.counter += 1
             sr.pulse()
         
+        number_collected = len(recorder.collected)
+        possible = len(recorder.copies)
+        
+        self.log.info("Collected %d unique function calls out of %d possible across all traces",\
+                       number_collected, possible)
+        
         sr.done()
         self.log.info("Collection process complete")
       
