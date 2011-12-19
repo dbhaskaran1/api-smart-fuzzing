@@ -28,7 +28,7 @@ class DllExp(object):
     def getFunctions(self):
         '''
         Runs the dllexp.exe tool to pull the export table from the target DLL.
-        Returns a list of (funcname, ordinal) tuples - (string, int, int)
+        Returns a list of (funcname, ordinal) tuples - (string, int)
         '''
         # Retrieve configuration info
         dllpath = self.cfg.get('fuzzer', 'target')

@@ -36,10 +36,15 @@ class Fuzzer(object):
     
     @ivar cfg: The L{Config} configuration object for this L{Fuzzer}
     @ivar log: The L{logging} object for this L{Fuzzer}
+    @ivar pr: The L{ParallelReporter} object used to indicate progress
     @ivar tracenum: The number identifying the current L{Trace}
     @ivar generator: The L{Generator} object used for fuzzing L{Trace} values
     @ivar monitor: The L{Monitor} object used for replaying L{Trace}s.
     @ivar fuzz_pointers: Boolean indicating if pointers should be fuzzed
+    @ivar snapshot_mode: String indicating if snapshots should have their tags fuzzed
+                         one by one ("sequential") or all at once ("simultaneous")
+    @ivar trace_mode: String indicating if traces should have their snapshots fuzzed
+                      one by one ("sequential") or all at once ("simultaneous")
     '''
 
     def __init__(self, cfg):
@@ -50,12 +55,26 @@ class Fuzzer(object):
         @param cfg: The configuration object to use
         @type cfg: L{Config} object
         '''
+        # The config object used for setup info
         self.cfg = cfg
+        # The logging object
         self.log = logging.getLogger(__name__)
+        # The progress bar object
+        self.pr = None
+        # The current trace number
         self.tracenum = 0
+        # The generator object for creating fuzzed values
         self.generator = generator.Generator(self.cfg)
+        # The Monitor object for testing fuzzed traces
         self.monitor = None
+        # Boolean indicating if pointers are fair game
         self.fuzz_pointers = True
+        # String indicating if snapshots should have their tags fuzzed
+        # one by one ("sequential") or all at once ("simultaneous")
+        self.snapshot_mode = None
+        # String indicating if traces should have their snapshots fuzzed
+        # one by one ("sequential") or all at once ("simultaneous")
+        self.trace_mode = None
         
     def fuzz(self):
         '''
@@ -73,7 +92,9 @@ class Fuzzer(object):
         original value, and the modified L{Trace} is fed to the 
         L{Monitor} for replay. After every fuzzed version has been run,
         the original value is restored and fuzzing moves on to the next
-        tag.
+        tag.The above process describes "sequential" mode for traces and
+        snapshots; "simultaneous" mode performs the above steps for all
+        tags in a snapshot and/or all snapshots in a trace at the same time.
         
         @note: For any fuzzed L{Trace}, only one value is changed 
                from the original version.
@@ -142,6 +163,26 @@ class Fuzzer(object):
         self.log.info("All traces fuzzed. Fuzzer shutting down")
             
     def fuzzTrace(self, trace):
+        '''
+        Takes a L{Trace} to fuzz and returns an iterator object. Each iteration
+        modifies the original trace in some way and then returns a reference
+        to that trace. The L{Trace} is not restored to its original state after
+        the fuzzing is completed.
+        
+        If trace mode is set to "sequential", each snapshot is fuzzed one at a
+        time in the trace, that is, an iterator is obtained using L{fuzzSnapshot}
+        for the first snapshot, and the L{Trace} is updated for each fuzzed value
+        given by the iterator until the iterator is exhausted. Then the process
+        moves to the next L{Snapshot} and so on. In "simultaneous" mode is set,
+        the iterators are exercised for all the L{Snapshot}s in the L{Trace}
+        simultaneously, until the last iterator is exhausted.
+        
+        @param trace: The original L{Trace} object to fuzz
+        @type trace: L{Trace} object
+        
+        @return: iterator generating fuzzed L{Trace} objects
+        @rtype: Iterator object
+        '''
         if self.trace_mode.lower() == "sequential" :
             # Fuzz snapshots one at a time
             self.log.info("Fuzzing snapshots sequentially")
@@ -175,6 +216,26 @@ class Fuzzer(object):
                 
     
     def fuzzSnap(self, snap):
+        '''
+        Takes a L{Snapshot} to fuzz and returns an iterator object. Each iteration
+        modifies the original snapshot in some way and then returns a reference
+        to that snapshot. Once the iterator is exhausted the L{Snapshot} is 
+        returned to its original state.
+        
+        If snapshot mode is set to "sequential", only one tag is fuzzed at a time
+        - all the tags but one will retain their original value. If the mode is
+        "simultaneous" the fuzzing mode is applied to all the tags at once, i.e. a
+        fuzzed value is generated for each tag and the snapshot is returned, and the
+        process repeats until all the tags have run out of fuzzed value. If a tag 
+        finishes fuzzing before the remaining tags have finished, it retains the
+        last fuzzed value it was given until the remaining tags are completed.
+        
+        @param snap: The original L{Snapshot} object to fuzz
+        @type snap: L{Snapshot} object
+        
+        @return: iterator generating fuzzed L{Snapshots} objects
+        @rtype: Iterator object
+        '''
         if self.snapshot_mode.lower() == "sequential"  :
             # Fuzz one tag at a time
             self.log.info("Fuzzing tags one at a time")
