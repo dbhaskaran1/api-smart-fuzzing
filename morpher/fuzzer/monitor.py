@@ -86,7 +86,7 @@ class Monitor(object):
         else :
             os.mkdir(self.crashpath)
         # Check if crashs/hangs should be stored in replayable format
-        self.save_traces = self.cfg.getBoolean('fuzzer', 'save_traces')
+        self.save_traces = self.cfg.getboolean('fuzzer', 'save_traces')
         # Stores the trace we just sent so we can dump it if needed
         self.last_trace = None
         
