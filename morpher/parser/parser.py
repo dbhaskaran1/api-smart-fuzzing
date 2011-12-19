@@ -1,7 +1,11 @@
 '''
-Created on Oct 21, 2011
+Contains the L{Parser} class for parsing a header file for
+function definitions and user-defined types.
 
 @author: Erik Schmidt
+@contact: emschmitty@gmail.com
+@organization: Carnegie Mellon University
+@since: October 23, 2011
 '''
 
 import xml.dom.minidom as xml
@@ -19,13 +23,29 @@ CPPPATH = r'../../tools/tcc/tcc.exe' if sys.platform == 'win32' else 'cpp'
 
 class Parser(object):
     '''
-    Parser documentation
+    Class documentation
+    
+    @ivar cfg: The L{Config} object
+    @ivar log: The L{logging} object
+    @ivar dllexp: The L{DllExp} object 
+    @ivar targetfile: An array of strings pointing to the header file paths (splits the string from the config file into separate strings delimited by a ';'
+    @ivar compiler: The address of the pre-processing compiler
+    @ivar compilerflags: The associated flags for the pre-processing compiler
+    @ivar numfuncincluded: The counter for recording the coverage of the parser
+    @ivar doc: An XML document object for the outputted model file
+    @ivar top: A pointer to the root of the XML tree
+    @ivar text: A list of the functions that DllExplorer outputs
+    @ivar xmlMap: A list of pointers into the AST that allow for dynamic XML generation
     '''
 
     def __init__ (self, cfg):
         '''
-        init documentation
+        Stores the configuration object and initializes the internal data
+        
+        @param cfg: The configuration object to use
+        @type cfg: L{Config} object
         '''
+        
         # The Config object used for configuration info
         self.cfg = cfg
         
@@ -44,35 +64,24 @@ class Parser(object):
         self.compilerflags = self.cfg.get('parser', 'compflags')
 
     def parse_file(self):
-        """ Parse a C file using pycparser.
+        ''' 
+        Parse a C file using pycparser.
         
-            filename:
-                Name of the file you want to parse.
-            
-            use_cpp:
-                Set to True if you want to execute the C pre-processor
-                on the file prior to parsing it.
-            
-            cpp_path:
-                If use_cpp is True, this is the path to 'cpp' on your
-                system. If no path is provided, it attempts to just
-                execute 'cpp', so it must be in your PATH.
-            
-            cpp_args:
-                If use_cpp is True, set this to the command line 
-                arguments strings to cpp. Be careful with quotes - 
-                it's best to pass a raw string (r'') here. 
-                For example:
-                r'-I../utils/fake_libc_include'
-                If several arguments are required, pass a list of 
-                strings.
-            
-            When successful, an AST is returned. ParseError can be 
-            thrown if the file doesn't parse successfully.
-            
-            Errors from cpp will be printed out. 
-        """
+        If parsing is disabled according to the configuration object, 
+        a message saying so is printed to the console and the method exits. 
+        Otherwise, the function uses the C preprocessor passed in to 
+        resolve any other header file dependencies (#includes), macro 
+        definitions (#defines and #pragmas), and merges multiple header files 
+        into one file. It then creates a L{CParser} object, which uses the 
+        Ply parsing engine to parse the file into an Abstract Syntax Tree in 
+        the form of L{Node} objects. The L{Node} object corresponding to the 
+        head of the AST is returned.
+        
+        @return: The root of the Parsed Abstract Syntax Tree, or None if there is a parsing error
+        @rtype: L{Node} object
+        '''
   
+        
         path_list = [self.compiler]
         if isinstance(self.compilerflags, list):
             path_list += self.compilerflags
@@ -123,7 +132,7 @@ class Parser(object):
             if printflag == 1:                
                 self.top.appendChild(func)
                 self.numFuncIncluded = self.numFuncIncluded + 1
-            return None 
+            return ""
         elif funcName == "ParamList":
             # The parameter list! List all the parameters!!
             for c in ast.children():
