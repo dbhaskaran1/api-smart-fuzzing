@@ -101,10 +101,6 @@ class Parser(object):
         text = re.sub('__stdcall',"",text)
         text = re.sub('__attribute__\(\(.*?\)\)*',"",text)
         
-        f = open("foo.txt", "w")
-        f.write(text)
-        f.close()
-        
         # Using pycparser, generate the preprocessed code and return the AST
         self.log.info("Parsing the preprocessed code using pycparser")
         parser = CParser(lex_optimize=False, yacc_debug=False, yacc_optimize=False)
@@ -257,8 +253,6 @@ class Parser(object):
                     iterPMap = iterMap
                     if iterMap.rfind("P") != -1:
                         iterPMap = iterMap[iterMap.rfind("P")+1:]
-                    if iterPMap == "482":
-                        print("482!! Part 2 " + str(printflag) + " is in? " + str(iterPMap in self.xmlMap))
                     if iterPMap in self.xmlMap and printflag == 1:
                         c = self.xmlMap[iterPMap]
                         del self.xmlMap[iterPMap]
@@ -275,65 +269,6 @@ class Parser(object):
                 if val != None:
                     self.typeMap[getattr(ast, ast.attr_names[0])] = val
             return None 
-#        elif funcName == "Struct":
-#            # Generate a unique usertype id if new, or set the index to the previously
-#            # assigned usertype id
-#            if getattr(ast, ast.attr_names[0]) in self.typeMap:
-#                ind = self.typeMap[getattr(ast, ast.attr_names[0])]
-#            elif getattr(ast, ast.attr_names[0]) != None and "//" + getattr(ast, ast.attr_names[0]) in self.typeMap:
-#                ind = self.typeMap["//" + getattr(ast, ast.attr_names[0])]
-#            else:
-#                ind = self.typeMap['#!@#index']
-#                self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
-#                self.typeMap[getattr(ast, ast.attr_names[0])] = str(ind) 
-#            
-#            changed = 0
-#    
-#            # Set the parameters for the XML model for a user defined type
-#            typex = self.doc.createElement("usertype")
-#            typex.setAttribute("id", str(ind))
-#            typex.setAttribute("type", "struct")
-#            
-#            if str(getattr(ast, ast.attr_names[0])) in self.text:
-#                print("printflag!!")
-#                printflag |= 1
-#            else:
-#                printflag |= 0
-#                  
-#            # Iterate through the children of the struct to add them to the XML model
-#            for c in ast.children():
-#                val = self.parseXML(c, typex, name, printflag)
-#                if val != None:
-#                    if val != "":
-#                        total = 1
-#                        arrays = val.split("[")
-#                        if len(arrays) > 1:
-#                            for i in range(len(arrays) - 1):
-#                                total *= int(arrays[i+1][:-1])
-#                            val = arrays[0]
-#                        for i in range(total):
-#                            param = self.doc.createElement("param")
-#                            param.setAttribute("type", val)
-#                            typex.appendChild(param)
-#                        changed = 1
-#            
-#            # If the current struct isn't supposed to be printed, add it to the
-#            # map which contains pointers to structs to print later. Otherwise, 
-#            # if the printflag is set, add to the XML model
-#            
-#            if ind == 482:
-#                print("482!!! " + str(printflag) + " changed " + str(changed))
-#            
-#            if changed == 1 and printflag == 0:
-#                self.xmlMap[str(ind)] = ast
-#            if printflag == 1:
-#                self.top.appendChild(typex)
-#                
-#            # Return the string represntation of the struct index
-#            if changed == 1:
-#                return str(ind)
-#            else:
-#                return ""
         elif funcName == "Union" or funcName == "Struct":
             # Union is pretty much the same as Struct. To see how it works, check 
             # out the struct and its comments
@@ -356,8 +291,6 @@ class Parser(object):
                 self.typeMap['#!@#index'] = self.typeMap['#!@#index'] + 1
                 self.typeMap[curname] = str(ind) 
             
-            #print(str(ind))
-            
             changed = 0
     
             # Set the parameters for the XML model for a user defined type
@@ -368,10 +301,7 @@ class Parser(object):
             elif funcName == "Struct":
                 typex.setAttribute("type", "struct")
             
-            #print(curname)
-            
             if str(curname) in self.text:
-                print("printflag!!")
                 printflag |= 1
             else:
                 printflag |= 0
@@ -486,10 +416,7 @@ class Parser(object):
         # Iterate through the AST and generate the XML model
         self.log.info("Iterating through the AST")
         self.parseXML(ast, self.top, None, 0)
-        
-        f = open("foo1.txt" , "w")
-        ast.show(f)
-        f.close()
+
         sr.pulse()
         self.log.info("Finished iterating through AST and generating XML content")
             
